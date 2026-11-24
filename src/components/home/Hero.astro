@@ -1,0 +1,97 @@
+---
+import fs from 'node:fs';
+import { Image } from 'astro:assets';
+import { getHome } from '../../data/home';
+import { href, langOf } from '../../data/site';
+import Lines from '../Lines.astro';
+
+const { HERO } = getHome(langOf(Astro.url.pathname));
+
+const here = Astro.url.pathname;
+const base = import.meta.env.BASE_URL;
+
+// Video hanya dirender bila file-nya benar-benar ada di public/, jadi tidak ada 404 atau markup mati.
+const exists = (p: string) => fs.existsSync(new URL(`../../../public/${p}`, import.meta.url));
+const hasMp4 = exists(HERO.video.mp4);
+const hasWebm = exists(HERO.video.webm);
+const hasVideo = hasMp4 || hasWebm;
+---
+
+<section class="hero" data-theme="dark">
+  <div class="hero__media">
+    <!-- Foto: cadangan, dan tampil sampai video siap diputar. -->
+    <Image
+      src={HERO.image}
+      alt={HERO.alt}
+      loading="eager"
+      fetchpriority="high"
+      widths={[900, 1600, 2400]}
+      sizes="100vw"
+    />
+    {hasVideo && (
+      <video
+        class="hero__video"
+        muted
+        loop
+        playsinline
+        autoplay
+        preload="auto"
+        aria-hidden="true"
+        tabindex="-1"
+        disablepictureinpicture
+        disableRemotePlayback
+      >
+        {hasMp4 && <source src={`${base}${HERO.video.mp4}`} type="video/mp4" />}
+        {hasWebm && <source src={`${base}${HERO.video.webm}`} type="video/webm" />}
+      </video>
+    )}
+  </div>
+  <!-- Menggelap pelan-pelan saat section berikutnya naik menutupi hero (diatur motion.ts). -->
+  <div class="hero__shade" aria-hidden="true"></div>
+  <div class="wrap hero__inner">
+    <div class="hero__text">
+      <p class="hero__tag" data-hero>
+        {HERO.tag}
+      </p>
+      <h1 class="hero__title">
+        <Lines text={HERO.title} mask />
+      </h1>
+    </div>
+    <div class="hero__aside" data-hero>
+      <p>{HERO.lead}</p>
+      <a class="arrow-link" href={href(HERO.cta.href, here)}>
+        {HERO.cta.label} <i aria-hidden="true"></i>
+      </a>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Dipasang ulang setiap halaman dimuat (termasuk setelah transisi halaman Astro).
+  document.addEventListener('astro:page-load', () => {
+    const video = document.querySelector<HTMLVideoElement>('.hero__video');
+    if (!video) return;
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    const skip = matchMedia('(prefers-reduced-motion: reduce)').matches || conn?.saveData;
+    if (skip) {
+      video.remove(); // tetap foto
+      return;
+    }
+    // Fade video in only once frames are really playing; until then the photo is visible.
+    // Autoplay can already be running by the time this handler is attached, so check the current state first;
+    // otherwise the one-time "playing" event is missed and the video stays invisible.
+    const reveal = () => video.classList.add('is-playing');
+    if (!video.paused && video.currentTime > 0) reveal();
+    else video.addEventListener('playing', reveal, { once: true });
+    video.play().catch(() => {});
+    // Hemat baterai: jeda saat hero di luar layar.
+    // Hero tetap "terlihat" bagi browser saat tertutup section di atasnya, jadi cek juga posisi tirai itu.
+    const covered = () => (document.querySelector('[data-curtain]')?.getBoundingClientRect().top ?? 1) <= 0;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !covered()) video.play().catch(() => {});
+      else video.pause();
+    });
+    io.observe(video);
+    document.addEventListener('astro:before-swap', () => io.disconnect(), { once: true });
+  });
+</script>

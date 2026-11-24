@@ -1,0 +1,316 @@
+---
+import { langOf } from '../data/site';
+import { t } from '../i18n';
+
+/**
+ * Pratinjau gambar di halaman yang sama (bukan tab baru), dengan zoom.
+ * Pakai <dialog> bawaan browser: fokus terkunci, Esc menutup, latar belakang tidak bisa diklik.
+ *
+ * Cara pakai: beri atribut `data-lightbox` pada tautan <a href="gambar-besar"> dan (opsional) `data-lb-alt`.
+ * Semua tautan bertanda itu di satu halaman menjadi satu galeri yang bisa digeser.
+ * Tanpa JavaScript, tautan tetap membuka gambar biasa.
+ *
+ * Zoom: klik gambar (zoom ke titik klik), roda mouse / cubit, tombol +/−, tombol 0 untuk reset.
+ * Saat di-zoom, gambar bisa digeser dengan menyeret.
+ */
+const l = t(langOf(Astro.url.pathname)).lightbox;
+---
+
+<dialog class="lb" data-lb data-lenis-prevent aria-label={l.label}>
+  <button class="lb__close" type="button" data-lb-close aria-label={l.close}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 6l12 12M18 6 6 18"></path>
+    </svg>
+  </button>
+
+  <div class="lb__tools" role="group" aria-label="Zoom">
+    <button type="button" data-lb-zout aria-label={l.zoomOut}>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 12h12"></path>
+      </svg>
+    </button>
+    <button type="button" class="lb__zoomval" data-lb-zreset aria-label={l.reset}>
+      100%
+    </button>
+    <button type="button" data-lb-zin aria-label={l.zoomIn}>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 6v12M6 12h12"></path>
+      </svg>
+    </button>
+  </div>
+
+  <button class="lb__nav lb__nav--prev" type="button" data-lb-prev aria-label={l.prev}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M14.5 5.5 8 12l6.5 6.5"></path>
+    </svg>
+  </button>
+
+  <figure class="lb__stage">
+    <div class="lb__viewport" data-lb-viewport>
+      <img class="lb__img" alt="" decoding="async" draggable="false" />
+    </div>
+    <figcaption class="lb__meta">
+      <span class="lb__cap"></span>
+      <span class="lb__count" aria-live="polite"></span>
+    </figcaption>
+  </figure>
+
+  <button class="lb__nav lb__nav--next" type="button" data-lb-next aria-label={l.next}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9.5 5.5 16 12l-6.5 6.5"></path>
+    </svg>
+  </button>
+</dialog>
+
+<script>
+  // Dipasang ulang setiap halaman dimuat (termasuk setelah transisi halaman Astro).
+  document.addEventListener('astro:page-load', () => {
+    const dlg = document.querySelector<HTMLDialogElement>('[data-lb]');
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('[data-lightbox]'));
+    if (!dlg || !links.length) return;
+
+    const view = dlg.querySelector<HTMLElement>('[data-lb-viewport]')!;
+    const img = dlg.querySelector<HTMLImageElement>('.lb__img')!;
+    const cap = dlg.querySelector<HTMLElement>('.lb__cap')!;
+    const count = dlg.querySelector<HTMLElement>('.lb__count')!;
+    const zoomVal = dlg.querySelector<HTMLElement>('.lb__zoomval')!;
+    const multi = links.length > 1;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ac = new AbortController();
+    const sig = { signal: ac.signal };
+    let index = 0;
+    let closing = false;
+
+    // motion.ts menghentikan/melanjutkan smooth scroll saat menerima event ini.
+    const lockScroll = (on: boolean) => {
+      document.documentElement.classList.toggle('lb-open', on);
+      document.dispatchEvent(new CustomEvent('ba:scroll-lock', { detail: on }));
+    };
+
+    dlg.classList.toggle('is-single', !multi);
+
+    /* ---------- zoom / pan ---------- */
+    const MAX = 4;
+    let scale = 1;
+    let tx = 0;
+    let ty = 0;
+
+    const apply = (animate = false) => {
+      img.classList.toggle('is-animating', animate && !reduce);
+      img.style.transform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
+      view.dataset.zoomed = scale > 1.001 ? 'true' : 'false';
+      zoomVal.textContent = `${Math.round(scale * 100)}%`;
+    };
+    const clampPan = () => {
+      const mx = Math.max(0, (img.offsetWidth * scale - view.clientWidth) / 2);
+      const my = Math.max(0, (img.offsetHeight * scale - view.clientHeight) / 2);
+      tx = Math.min(mx, Math.max(-mx, tx));
+      ty = Math.min(my, Math.max(-my, ty));
+    };
+    /** Zoom to `next`, keeping the point under (cx, cy) fixed on screen. */
+    const zoomAt = (next: number, cx: number, cy: number, animate = false) => {
+      const r = view.getBoundingClientRect();
+      const px = cx - (r.left + r.width / 2);
+      const py = cy - (r.top + r.height / 2);
+      next = Math.min(MAX, Math.max(1, next));
+      const k = next / scale;
+      tx = px - (px - tx) * k;
+      ty = py - (py - ty) * k;
+      scale = next;
+      if (scale < 1.001) {
+        scale = 1;
+        tx = 0;
+        ty = 0;
+      }
+      clampPan();
+      apply(animate);
+    };
+    const zoomBy = (factor: number) => {
+      const r = view.getBoundingClientRect();
+      zoomAt(scale * factor, r.left + r.width / 2, r.top + r.height / 2, true);
+    };
+    const resetZoom = (animate = true) => {
+      scale = 1;
+      tx = 0;
+      ty = 0;
+      apply(animate);
+    };
+
+    // Wheel / trackpad pinch (ctrlKey) zooms toward the cursor.
+    view.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        zoomAt(scale * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0018)), e.clientX, e.clientY);
+      },
+      { passive: false, ...sig },
+    );
+
+    // Drag to pan, pinch to zoom. Move/up listen on window so a drag that leaves the image still ends cleanly.
+    const ptrs = new Map<number, { x: number; y: number }>();
+    const drag = { sx: 0, sy: 0, stx: 0, sty: 0, moved: false, touch: false };
+    let pinchStart = 0;
+    let pinchScale = 1;
+
+    view.addEventListener(
+      'pointerdown',
+      (e) => {
+        ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (ptrs.size === 1) {
+          Object.assign(drag, {
+            sx: e.clientX,
+            sy: e.clientY,
+            stx: tx,
+            sty: ty,
+            moved: false,
+            touch: e.pointerType === 'touch',
+          });
+        } else if (ptrs.size === 2) {
+          const [a, b] = [...ptrs.values()];
+          pinchStart = Math.hypot(a.x - b.x, a.y - b.y);
+          pinchScale = scale;
+        }
+      },
+      sig,
+    );
+    window.addEventListener(
+      'pointermove',
+      (e) => {
+        if (!ptrs.has(e.pointerId)) return;
+        ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (ptrs.size === 2) {
+          const [a, b] = [...ptrs.values()];
+          zoomAt((pinchScale * Math.hypot(a.x - b.x, a.y - b.y)) / pinchStart, (a.x + b.x) / 2, (a.y + b.y) / 2);
+          drag.moved = true;
+          return;
+        }
+        const dx = e.clientX - drag.sx;
+        const dy = e.clientY - drag.sy;
+        if (Math.hypot(dx, dy) > 4) drag.moved = true;
+        if (scale > 1) {
+          tx = drag.stx + dx;
+          ty = drag.sty + dy;
+          clampPan();
+          apply();
+          view.classList.add('is-dragging');
+        }
+      },
+      sig,
+    );
+    const endPointer = (e: PointerEvent) => {
+      if (!ptrs.has(e.pointerId)) return;
+      const wasSingle = ptrs.size === 1;
+      ptrs.delete(e.pointerId);
+      view.classList.remove('is-dragging');
+      // Swipe left/right to change image (touch only, and only when not zoomed).
+      if (wasSingle && multi && drag.touch && scale === 1) {
+        const dx = e.clientX - drag.sx;
+        if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(e.clientY - drag.sy)) show(index + (dx < 0 ? 1 : -1));
+      }
+    };
+    window.addEventListener('pointerup', endPointer, sig);
+    window.addEventListener('pointercancel', endPointer, sig);
+
+    // Click the image to zoom in at that point; click again to return to fit. A drag is not a click.
+    img.addEventListener(
+      'click',
+      () => {
+        if (drag.moved) {
+          drag.moved = false;
+          return;
+        }
+        if (scale > 1) resetZoom();
+        else zoomAt(2.5, drag.sx, drag.sy, true);
+      },
+      sig,
+    );
+
+    /* ---------- gallery ---------- */
+    const show = (n: number) => {
+      index = (n + links.length) % links.length;
+      const a = links[index];
+      const alt = a.dataset.lbAlt ?? '';
+      cap.textContent = alt;
+      count.textContent = multi ? `${index + 1} / ${links.length}` : '';
+      resetZoom(false);
+      // Load first, then swap, so the old image never flashes empty.
+      img.classList.add('is-swap');
+      const next = new Image();
+      next.onload = next.onerror = () => {
+        img.src = a.href;
+        img.alt = alt;
+        img.classList.remove('is-swap');
+      };
+      next.src = a.href;
+    };
+
+    const open = (n: number) => {
+      show(n);
+      dlg.showModal();
+      lockScroll(true);
+      requestAnimationFrame(() => dlg.classList.add('is-open'));
+    };
+
+    const close = () => {
+      if (closing || !dlg.open) return;
+      closing = true;
+      dlg.classList.remove('is-open');
+      setTimeout(
+        () => {
+          dlg.close();
+          closing = false;
+          lockScroll(false);
+        },
+        reduce ? 0 : 330,
+      );
+    };
+
+    links.forEach((a, k) =>
+      a.addEventListener('click', (e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // allow "open in new tab" if the user wants it
+        e.preventDefault();
+        open(k);
+      }),
+    );
+
+    // Esc: use our animated close instead of the instant native one.
+    dlg.addEventListener('cancel', (e) => {
+      e.preventDefault();
+      close();
+    });
+
+    dlg.addEventListener('click', (e) => {
+      const t = e.target as Element;
+      if (t.closest('[data-lb-prev]')) return show(index - 1);
+      if (t.closest('[data-lb-next]')) return show(index + 1);
+      if (t.closest('[data-lb-zin]')) return zoomBy(1.5);
+      if (t.closest('[data-lb-zout]')) return zoomBy(1 / 1.5);
+      if (t.closest('[data-lb-zreset]')) return resetZoom();
+      if (t.closest('.lb__img, .lb__meta')) return;
+      if (drag.moved) {
+        drag.moved = false;
+        return;
+      }
+      close(); // close button, backdrop, or empty space around the image
+    });
+
+    dlg.addEventListener('keydown', (e) => {
+      if (multi && e.key === 'ArrowLeft') show(index - 1);
+      if (multi && e.key === 'ArrowRight') show(index + 1);
+      if (e.key === '+' || e.key === '=') zoomBy(1.5);
+      if (e.key === '-' || e.key === '_') zoomBy(1 / 1.5);
+      if (e.key === '0') resetZoom();
+    });
+
+    // Leaving the page while open must release the scroll lock and our window listeners.
+    document.addEventListener(
+      'astro:before-swap',
+      () => {
+        if (dlg.open) dlg.close();
+        lockScroll(false);
+        ac.abort();
+      },
+      { once: true },
+    );
+  });
+</script>

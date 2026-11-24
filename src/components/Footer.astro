@@ -1,0 +1,67 @@
+---
+import { Image } from 'astro:assets';
+import { SITE, href, langOf } from '../data/site';
+import { t } from '../i18n';
+import logoLight from '../assets/brand/logo-light.png';
+import MapEmbed from './MapEmbed.astro';
+
+const here = Astro.url.pathname;
+const d = t(langOf(here));
+const c = SITE.contact;
+---
+
+<footer class="ftr" data-theme="dark">
+  <div class="wrap">
+    <div class="split ftr__loc">
+      <p class="label">{d.footer.location}</p>
+      <MapEmbed />
+    </div>
+
+    <div class="ftr__cols">
+      <div class="ftr__brand">
+        <Image class="ftr__logo" src={logoLight} alt={SITE.brand} height={80} loading="lazy" />
+        <p>{d.meta.slogan}.</p>
+      </div>
+      <div>
+        <span class="ftr__h">{d.footer.navigation}</span>
+        {d.nav.map((n) => (
+          <a href={href(n.href, here)}>{n.label}</a>
+        ))}
+      </div>
+      <div>
+        <span class="ftr__h">{d.footer.contact}</span>
+        {c.phones.map((p) => (
+          <a href={`tel:${p.tel}`}>
+            {p.display} <small>({p.name})</small>
+          </a>
+        ))}
+        <span>{c.address}</span>
+      </div>
+      <div>
+        <span class="ftr__h">{d.footer.follow}</span>
+        {SITE.social.map((s) => (
+          <a href={s.href} target="_blank" rel="noopener">
+            {s.label}
+          </a>
+        ))}
+      </div>
+    </div>
+
+    <div class="ftr__legal">
+      <span>{SITE.legal.name}</span>
+      <span>NIB {SITE.legal.nib}</span>
+      <span>{SITE.legal.ahu}</span>
+    </div>
+
+    <div class="ftr__bar">
+      <span>{`© ${new Date().getFullYear()} ${SITE.legalName}`}</span>
+      <span class="ftr__credit">
+        {SITE.credit.prefix}{' '}
+        <a href={SITE.credit.href} target="_blank" rel="noopener">
+          {SITE.credit.name}
+        </a>
+      </span>
+      <a href="#top">{d.ui.backToTop}</a>
+    </div>
+  </div>
+</footer>

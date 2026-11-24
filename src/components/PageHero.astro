@@ -1,0 +1,31 @@
+---
+import Lines from './Lines.astro';
+
+/** Judul halaman dalam. */
+interface Props {
+  label: string;
+  /** Pakai "|" untuk baris baru. */
+  title: string;
+  lead?: string;
+}
+
+const { label, title, lead } = Astro.props;
+---
+
+<section class="phero">
+  <div class="wrap split">
+    <p class="label" data-reveal>
+      {label}
+    </p>
+    <div>
+      <h1 class="phero__title" data-reveal>
+        <Lines text={title} />
+      </h1>
+      {lead && (
+        <p class="phero__lead" data-reveal>
+          {lead}
+        </p>
+      )}
+    </div>
+  </div>
+</section>

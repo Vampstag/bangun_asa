@@ -1,0 +1,59 @@
+---
+import { Image } from 'astro:assets';
+import { getHome } from '../../data/home';
+import { langOf, whatsappUrl } from '../../data/site';
+
+const lang = langOf(Astro.url.pathname);
+const { QUOTE } = getHome(lang);
+const lines = QUOTE.title.split('|');
+const mark = `${import.meta.env.BASE_URL}favicon.png`;
+---
+
+<section class="quote" id="testimoni" data-quote>
+  <!--
+    Adegan sticky (motion.ts): panggung 100svh menempel di layar, judul melebar, kolom kartu naik melewatinya.
+    Tanpa JavaScript atau dengan reduced-motion, ini hanya judul + daftar kartu biasa. Isi: src/data/testimonials.ts
+  -->
+  <div class="quote__scene" data-quote-scene>
+    <div class="quote__stage">
+      <p class="label quote__label">{QUOTE.label}</p>
+      <h2 class="quote__title" data-quote-title>
+        {lines.map((l) => (
+          <span>{l}</span>
+        ))}
+      </h2>
+      <div class="quote__col" data-quote-col>
+        {QUOTE.items.map((it) => (
+          <figure class="quote__card">
+            <span class="quote__chip" aria-hidden="true">
+              <img src={mark} alt="" width="20" height="20" loading="lazy" />
+            </span>
+            <blockquote lang={it.textLang}>{it.text}</blockquote>
+            <figcaption>
+              {it.photo ? (
+                <Image class="quote__av quote__av--photo" src={it.photo} alt="" width={96} height={96} loading="lazy" />
+              ) : (
+                <span class="quote__av" aria-hidden="true">
+                  {it.name.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span class="quote__who">
+                <b>{it.name}</b>
+                {it.note && <span class="quote__note">{it.note}</span>}
+              </span>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="quote__share">
+      <p>{QUOTE.share}</p>
+      <a class="arrow-link" href={whatsappUrl(lang, QUOTE.shareText)} target="_blank" rel="noopener">
+        {QUOTE.shareCta} <i aria-hidden="true" />
+      </a>
+    </div>
+  </div>
+</section>

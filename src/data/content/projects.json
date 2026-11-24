@@ -1,0 +1,40 @@
+{
+  "items": [
+    {
+      "title_id": "Rumah Minimalis Modern",
+      "title_en": "Modern Minimalist House",
+      "meta_id": "Rumah tinggal",
+      "meta_en": "Residential",
+      "image": "/src/assets/uploads/proyek-1.webp",
+      "alt_id": "Rumah minimalis modern satu lantai dengan panel abu-abu",
+      "alt_en": "Single-storey modern minimalist house with grey panels"
+    },
+    {
+      "title_id": "Rumah Tinggal Satu Lantai",
+      "title_en": "Single-Storey House",
+      "meta_id": "Rumah tinggal",
+      "meta_en": "Residential",
+      "image": "/src/assets/uploads/proyek-2.webp",
+      "alt_id": "Teras dan carport rumah minimalis berfasad putih",
+      "alt_en": "Terrace and carport of a minimalist house with a white facade"
+    },
+    {
+      "title_id": "Rumah Dua Lantai",
+      "title_en": "Two-Storey House",
+      "meta_id": "Rumah tinggal",
+      "meta_en": "Residential",
+      "image": "/src/assets/uploads/proyek-3.webp",
+      "alt_id": "Rumah dua lantai modern dengan aksen oranye",
+      "alt_en": "Modern two-storey house with orange accents"
+    },
+    {
+      "title_id": "Rumah Tinggal Modern",
+      "title_en": "Modern Family Home",
+      "meta_id": "Rumah tinggal",
+      "meta_en": "Residential",
+      "image": "/src/assets/uploads/proyek-4.webp",
+      "alt_id": "Rumah putih bergaya modern dengan aksen oranye dan taman depan",
+      "alt_en": "Modern white house with orange accents and a front garden"
+    }
+  ]
+}

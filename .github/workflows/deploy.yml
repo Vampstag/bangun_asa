@@ -1,0 +1,48 @@
+# Setiap perubahan di cabang main (termasuk yang disimpan lewat dashboard /admin/) otomatis:
+#   1. dicek (tipe, lint, format) dan dibangun; kalau gagal, TIDAK ada yang diunggah (situs lama tetap aman)
+#   2. diunggah ke cPanel lewat FTP
+# Setup rahasia dan variabel: docs/SETUP-CMS-DAN-DEPLOY.md
+
+name: Build dan deploy ke cPanel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # tombol "Run workflow" manual di tab Actions
+
+# Dua deploy tidak boleh berjalan bersamaan; yang lebih baru menggantikan yang antre.
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # check + lint + format + build. Konten yang rusak dari dashboard berhenti di sini.
+      - run: npm run verify
+
+      - name: Unggah ke cPanel (FTP)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # Variabel (Settings → Secrets and variables → Actions → Variables); tanpa variabel dipakai nilai bawaan.
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          server-dir: ${{ vars.FTP_DIR || '/public_html/' }}
+          local-dir: ./dist/
+          # Hanya mengunggah file yang berubah. File lama di server TIDAK dihapus otomatis (lihat panduan: serah terima dari situs lama).

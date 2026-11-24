@@ -1,0 +1,21 @@
+---
+import Lines from './Lines.astro';
+
+/** Baris heading di awal section: label kecil di kiri, judul besar di kanan. */
+interface Props {
+  label: string;
+  /** Pakai "|" untuk baris baru. */
+  title: string;
+}
+
+const { label, title } = Astro.props;
+---
+
+<div class="split head">
+  <p class="label" data-reveal>
+    {label}
+  </p>
+  <h2 class="h2" data-reveal>
+    <Lines text={title} />
+  </h2>
+</div>

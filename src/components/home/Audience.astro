@@ -1,0 +1,52 @@
+---
+import { Image } from 'astro:assets';
+import { getHome } from '../../data/home';
+import { href, langOf } from '../../data/site';
+import SectionHead from '../SectionHead.astro';
+
+const { AUDIENCE } = getHome(langOf(Astro.url.pathname));
+
+const here = Astro.url.pathname;
+---
+
+<section class="sec" id="untuk-siapa">
+  <div class="wrap">
+    <SectionHead label={AUDIENCE.label} title={AUDIENCE.title} />
+
+    <div class="aud">
+      {AUDIENCE.cards.map((c) => (
+        <article class:list={['aud__card', `aud__card--${c.tone}`]} data-reveal>
+          <p class="aud__tag">
+            <b>{c.tag}</b>
+            <span>{c.who}</span>
+          </p>
+
+          <figure class="media aud__img">
+            <Image
+              src={c.image}
+              alt={c.alt}
+              widths={[700, 1100, 1500]}
+              sizes="(min-width: 901px) 46vw, 100vw"
+              loading="lazy"
+            />
+          </figure>
+
+          <h3 class="aud__title">{c.title}</h3>
+          <p class="aud__lead">{c.text}</p>
+
+          <ul class="aud__list">
+            {c.points.map((p) => (
+              <li>{p}</li>
+            ))}
+          </ul>
+
+          <div class="aud__foot">
+            <a class="arrow-link" href={href(c.href, here)}>
+              {c.cta} <i aria-hidden="true"></i>
+            </a>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>

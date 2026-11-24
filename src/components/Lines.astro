@@ -1,0 +1,25 @@
+---
+/**
+ * Teks dengan pemisah baris "|", mis. "Baris satu|Baris dua".
+ * Dengan `mask`, tiap baris dibungkus agar bisa naik dari balik garis (dipakai judul hero).
+ */
+interface Props {
+  text: string;
+  mask?: boolean;
+}
+const { text, mask = false } = Astro.props;
+const lines = text.split('|');
+---
+
+{mask
+  ? lines.map((line) => (
+      <span class="ln">
+        <span class="ln__in">{line}</span>
+      </span>
+    ))
+  : lines.map((line, i) => (
+      <Fragment>
+        {i > 0 && <br />}
+        {line}
+      </Fragment>
+    ))}

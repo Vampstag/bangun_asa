@@ -1,0 +1,38 @@
+---
+import { Image } from 'astro:assets';
+import { getHome } from '../../data/home';
+import { langOf } from '../../data/site';
+import SectionHead from '../SectionHead.astro';
+
+const { TEAM } = getHome(langOf(Astro.url.pathname));
+---
+
+<section class="sec team" id="tim">
+  <div class="wrap">
+    <SectionHead label={TEAM.label} title={TEAM.title} />
+
+    <figure class="media team__photo" data-mask>
+      <Image
+        src={TEAM.image}
+        alt={TEAM.alt}
+        widths={[900, 1500, 2200]}
+        sizes="(min-width: 1440px) 1344px, 100vw"
+        loading="lazy"
+      />
+    </figure>
+
+    <div class="split team__body">
+      <p class="team__lead" data-reveal>
+        {TEAM.lead}
+      </p>
+      <ul class="team__list">
+        {TEAM.members.map((m) => (
+          <li data-reveal>
+            <b>{m.name}</b>
+            <span>{m.role}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>

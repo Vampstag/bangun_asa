@@ -1,0 +1,44 @@
+---
+/**
+ * Isi homepage. Dipakai oleh dua rute: src/pages/index.astro (Indonesia) dan src/pages/en/index.astro (Inggris).
+ * Bahasa ditentukan dari URL (/en/...), teksnya dari src/i18n.
+ */
+import Layout from '../layouts/Layout.astro';
+import Header from './Header.astro';
+import Footer from './Footer.astro';
+import Cta from './Cta.astro';
+import QuoteForm from './QuoteForm.astro';
+import Hero from './home/Hero.astro';
+import Trust from './home/Trust.astro';
+import Intro from './home/Intro.astro';
+import Audience from './home/Audience.astro';
+import Services from './home/Services.astro';
+import Work from './home/Work.astro';
+import Process from './home/Process.astro';
+import Team from './home/Team.astro';
+import Quote from './home/Quote.astro';
+import Faq from './home/Faq.astro';
+---
+
+<Layout>
+  <Header theme="dark" />
+  <main id="top">
+    <Hero />
+    <!-- "Tirai": hero tetap diam (sticky), section di bawahnya naik menutupinya. -->
+    <div class="curtain" data-curtain>
+      <Trust />
+      <Intro />
+      <Audience />
+      <Services />
+      <Work />
+      <Process />
+      <Team />
+      <Quote />
+      <Faq />
+      <Cta>
+        <QuoteForm />
+      </Cta>
+    </div>
+  </main>
+  <Footer />
+</Layout>

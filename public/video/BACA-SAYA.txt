@@ -1,0 +1,36 @@
+VIDEO HERO
+==========
+Taruh file di folder ini dengan nama persis:
+
+  hero.mp4    (wajib, H.264)
+  hero.webm   (opsional, ukuran lebih kecil di Chrome/Firefox)
+
+Begitu hero.mp4 ada, halaman depan otomatis memakainya (refresh browser).
+Tanpa file, hero memakai foto. Tidak perlu mengubah kode.
+
+Spesifikasi yang disarankan
+- Durasi 8-15 detik, dibuat bisa diulang mulus (loop).
+- Resolusi 1920x1080, rasio 16:9, 24-30 fps.
+- Tanpa suara (buang audio track).
+- Ukuran target di bawah 4 MB (maksimal 8 MB), supaya cepat dimuat di HP.
+- Komposisi: area teks (kiri bawah) sebaiknya tidak terlalu terang atau ramai.
+- Gerakan lambat dan stabil (drone, timelapse, pan pelan) terlihat paling mewah.
+
+Kompres dengan ffmpeg (jika terpasang):
+  ffmpeg -i sumber.mov -an -vf "scale=1920:-2" -c:v libx264 -crf 28 -preset slow -movflags +faststart hero.mp4
+  ffmpeg -i sumber.mov -an -vf "scale=1920:-2" -c:v libvpx-vp9 -crf 36 -b:v 0 hero.webm
+
+Tanpa ffmpeg: pakai HandBrake (gratis), preset "Fast 1080p30", hapus audio, RF sekitar 26-28.
+
+Perilaku otomatis
+- Foto tampil dulu, video fade in begitu siap diputar.
+- Video berhenti saat hero keluar layar (hemat baterai).
+- Pengguna dengan "reduce motion" atau mode hemat data tetap melihat foto saja.
+
+PLACEHOLDER SAAT INI
+hero.mp4 yang sekarang adalah klip stok sementara (720p, 10,5 detik, 3,2 MB):
+"Sunset behind a building under construction", Mixkit, ID 3971
+https://mixkit.co/free-stock-video/sunset-behind-a-building-under-construction-3971/
+Lisensi Mixkit: gratis untuk proyek komersial, tanpa atribusi. Tetap cek ulang syaratnya
+di mixkit.co/license sebelum situs tayang, lalu ganti dengan footage proyek Bangun Asa.
+Cukup timpa file hero.mp4 dengan file baru bernama sama.

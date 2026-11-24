@@ -1,0 +1,7 @@
+dist/
+.astro/
+node_modules/
+public/
+package-lock.json
+# CSS sengaja ditulis ringkas satu-baris per aturan; jangan diubah otomatis.
+src/styles/

@@ -1,0 +1,29 @@
+---
+import { getHome } from '../../data/home';
+import { langOf } from '../../data/site';
+
+const { FAQ } = getHome(langOf(Astro.url.pathname));
+---
+
+<section class="sec faq-sec" id="faq">
+  <div class="wrap split">
+    <div>
+      <p class="label" data-reveal>
+        {FAQ.label}
+      </p>
+    </div>
+    <div>
+      <h2 class="h2" data-reveal>
+        {FAQ.title}
+      </h2>
+      <div class="faq" data-reveal>
+        {FAQ.items.map((it) => (
+          <details>
+            <summary>{it.q}</summary>
+            <p>{it.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,42 @@
+---
+import { Image } from 'astro:assets';
+import { getHome } from '../../data/home';
+import { langOf } from '../../data/site';
+
+const { INTRO, STATS } = getHome(langOf(Astro.url.pathname));
+---
+
+<section class="sec intro" id="intro">
+  <div class="wrap">
+    <div class="split">
+      <p class="label" data-reveal>
+        {INTRO.label}
+      </p>
+      <p class="manifesto" data-manifesto>
+        {INTRO.text}
+      </p>
+    </div>
+
+    <figure class="media media--wide" data-mask>
+      <Image
+        src={INTRO.image}
+        alt={INTRO.imageAlt}
+        widths={[900, 1600, 2400]}
+        sizes="(min-width: 1440px) 1344px, 100vw"
+        data-parallax
+      />
+    </figure>
+
+    <dl class="stats" style={`--n:${STATS.length}`}>
+      {STATS.map((s) => (
+        <div data-reveal>
+          <dt>
+            {s.plain ? <span>{s.value}</span> : <span data-count={s.value}>{s.value}</span>}
+            <sup>{s.suffix}</sup>
+          </dt>
+          <dd>{s.text}</dd>
+        </div>
+      ))}
+    </dl>
+  </div>
+</section>

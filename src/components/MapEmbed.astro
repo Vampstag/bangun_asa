@@ -1,0 +1,67 @@
+---
+import { SITE, langOf } from '../data/site';
+import { t } from '../i18n';
+
+/**
+ * Peta lokasi dengan pola "klik untuk memuat": tidak ada permintaan ke Google (skrip, cookie)
+ * sebelum pengunjung menekan tombol. Tautan petunjuk arah selalu tersedia tanpa JavaScript.
+ */
+const d = t(langOf(Astro.url.pathname));
+const { address, map } = SITE.contact;
+const dirUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(map.destination)}`;
+---
+
+<div
+  class="map"
+  data-map
+  data-src={map.embedUrl}
+  data-title={`${d.map.title} ${SITE.brand}`}
+  data-loading={d.map.loading}
+>
+  <div class="map__frame">
+    <button class="map__load" type="button" data-map-load>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"></path>
+        <circle cx="12" cy="10" r="2.4"></circle>
+      </svg>
+      <span class="map__cta">{d.map.show}</span>
+      <span class="map__note">{d.map.note}</span>
+    </button>
+  </div>
+  <div class="map__meta">
+    <p>{address}</p>
+    <p class="map__links">
+      <a href={dirUrl} target="_blank" rel="noopener">
+        {d.map.directions}
+      </a>
+      <a href={map.openUrl} target="_blank" rel="noopener">
+        {d.map.open}
+      </a>
+    </p>
+  </div>
+</div>
+
+<script>
+  // Dipasang ulang setiap halaman dimuat (termasuk setelah transisi halaman Astro).
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('[data-map]').forEach((root) => {
+      const btn = root.querySelector<HTMLButtonElement>('[data-map-load]');
+      const frame = root.querySelector<HTMLElement>('.map__frame');
+      btn?.addEventListener('click', () => {
+        if (!frame || !root.dataset.src) return;
+        const iframe = document.createElement('iframe');
+        iframe.src = root.dataset.src;
+        iframe.title = root.dataset.title ?? '';
+        iframe.loading = 'lazy';
+        iframe.referrerPolicy = 'no-referrer-when-downgrade';
+        iframe.allowFullscreen = true;
+        iframe.addEventListener('load', () => btn.remove(), { once: true });
+        frame.appendChild(iframe);
+        btn.disabled = true;
+        btn.classList.add('is-loading');
+        const cta = btn.querySelector('.map__cta');
+        if (cta) cta.textContent = root.dataset.loading ?? '';
+      });
+    });
+  });
+</script>

@@ -1,0 +1,103 @@
+# Konfigurasi dashboard konten (Sveltia CMS, kompatibel dengan Decap CMS).
+# Panduan setup: docs/SETUP-CMS-DAN-DEPLOY.md  ·  Panduan untuk editor: docs/PANDUAN-EDITOR.md
+#
+# WAJIB DIISI sebelum login dashboard bisa dipakai (lihat docs/SETUP-CMS-DAN-DEPLOY.md, bagian "Login dashboard"):
+#   base_url  alamat Cloudflare Worker untuk login GitHub (OAuth)
+# Repo sudah diisi: Vampstag/bangun_asa.
+
+backend:
+  name: github
+  repo: Vampstag/bangun_asa
+  branch: main
+  base_url: https://GANTI-NAMA-WORKER.GANTI-AKUN.workers.dev
+  commit_messages:
+    create: 'Konten: tambah {{collection}} "{{slug}}"'
+    update: 'Konten: ubah {{collection}} "{{slug}}"'
+    delete: 'Konten: hapus {{collection}} "{{slug}}"'
+    uploadMedia: 'Media: unggah "{{path}}"'
+    deleteMedia: 'Media: hapus "{{path}}"'
+
+site_url: https://bangunasa.com
+display_url: https://bangunasa.com
+logo_url: /favicon.png
+locale: id
+publish_mode: simple
+
+# Foto yang diunggah lewat dashboard masuk ke sini; situs mengoptimasinya otomatis saat build.
+media_folder: src/assets/uploads
+public_folder: /src/assets/uploads
+
+collections:
+  - name: karya
+    label: Karya / Proyek
+    label_singular: Karya
+    description: Foto dan judul proyek yang tampil di bagian "Karya terpilih" beranda.
+    files:
+      - name: proyek
+        label: Daftar proyek
+        file: src/data/content/projects.json
+        fields:
+          - label: Proyek
+            name: items
+            widget: list
+            label_singular: proyek
+            summary: '{{fields.title_id}}'
+            hint: Urutan di sini = urutan di situs. Seret untuk mengubah urutan. Disarankan 4 sampai 8 proyek.
+            fields:
+              - label: Foto proyek
+                name: image
+                widget: image
+                choose_url: false
+                hint: Foto tampak depan bangunan, orientasi tegak (potret) paling bagus. Maksimal sekitar 5 MB.
+              - { label: Judul (Indonesia), name: title_id, widget: string, hint: 'Contoh: Rumah Minimalis Modern' }
+              - { label: Judul (Inggris), name: title_en, widget: string, required: false, hint: Boleh dikosongkan. Kalau kosong, versi Inggris memakai judul Indonesia. }
+              - { label: Jenis (Indonesia), name: meta_id, widget: string, required: false, hint: 'Contoh: Rumah tinggal  atau  Ruko · Tuban 2025' }
+              - { label: Jenis (Inggris), name: meta_en, widget: string, required: false }
+              - { label: Deskripsi foto (Indonesia), name: alt_id, widget: string, required: false, hint: 'Untuk pembaca layar dan Google. Contoh: Rumah dua lantai dengan aksen oranye' }
+              - { label: Deskripsi foto (Inggris), name: alt_en, widget: string, required: false }
+
+  - name: testimoni
+    label: Testimoni
+    description: Testimoni klien yang tampil di bagian "Kata mereka" beranda.
+    files:
+      - name: testimoni
+        label: Daftar testimoni
+        file: src/data/content/testimonials.json
+        fields:
+          - label: Testimoni
+            name: items
+            widget: list
+            label_singular: testimoni
+            summary: '{{fields.name}}'
+            hint: 'Urutan di sini = urutan di situs. Yang tampil maksimal 8 teratas, jadi taruh yang terbaik di atas.'
+            fields:
+              - { label: Nama, name: name, widget: string, hint: 'Hanya tulis nama yang sudah diizinkan orangnya. Contoh: Budi Santoso, atau Budi S.' }
+              - { label: Isi testimoni (Indonesia), name: text_id, widget: text, hint: Salin apa adanya dari pengirim, boleh rapikan ejaan dan huruf kapital. }
+              - { label: Isi testimoni (Inggris), name: text_en, widget: text, required: false, hint: Boleh dikosongkan. Kalau kosong, versi Inggris menampilkan teks Indonesia dengan catatan "Original in Indonesian". }
+              - { label: Foto, name: photo, widget: image, required: false, choose_url: false, hint: 'Boleh dikosongkan (akan memakai huruf awal nama). Pakai foto hanya jika orangnya mengizinkan.' }
+
+  - name: pengaturan
+    label: Pengaturan situs
+    description: Kontak dan sosial media. Berubah di seluruh situs sekaligus (header, menu, footer, tombol WhatsApp, form).
+    files:
+      - name: kontak
+        label: Kontak dan sosial media
+        file: src/data/content/settings.json
+        fields:
+          - { label: Alamat kantor, name: address, widget: text, hint: Tampil di footer dan data Google. }
+          - label: Nomor customer service
+            name: phones
+            widget: list
+            label_singular: nomor
+            min: 1
+            summary: '{{fields.name}} · {{fields.display}}'
+            hint: 'NOMOR PERTAMA dipakai sebagai WhatsApp utama (form penawaran dan tautan umum). Seret untuk menukar urutan.'
+            fields:
+              - { label: Nama, name: name, widget: string, hint: 'Contoh: CS Nana' }
+              - label: Nomor
+                name: display
+                widget: string
+                hint: Tulis seperti biasa, contoh 0851 3851 6234. Format internasional dibuat otomatis.
+                pattern: ['^[0-9+() -]{8,22}$', 'Tulis angkanya saja, contoh 0851 3851 6234']
+          - { label: Instagram (tautan lengkap), name: instagram, widget: string, required: false, hint: 'Contoh: https://www.instagram.com/bangun_asa' }
+          - { label: TikTok (tautan lengkap), name: tiktok, widget: string, required: false, hint: 'Contoh: https://www.tiktok.com/@bangun_asa' }

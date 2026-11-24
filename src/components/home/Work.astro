@@ -1,0 +1,56 @@
+---
+import { Image } from 'astro:assets';
+import { getHome } from '../../data/home';
+import { href, langOf } from '../../data/site';
+import SectionHead from '../SectionHead.astro';
+
+const { WORK } = getHome(langOf(Astro.url.pathname));
+
+const here = Astro.url.pathname;
+const total = String(WORK.items.length).padStart(2, '0');
+---
+
+<section class="work" id="karya">
+  <div class="wrap">
+    <SectionHead label={WORK.label} title={WORK.title} />
+  </div>
+
+  <!-- Desktop: slider menempel, scroll vertikal menggeser kartu ke samping. Mobile: swipe biasa. -->
+  <div class="slider" data-slider>
+    <div class="slider__stage">
+      <div class="slider__track" data-slider-track>
+        {WORK.items.map((p) => (
+          <a class="card" href={href(p.href, here)}>
+            <figure class="media">
+              <Image
+                src={p.image}
+                alt={p.alt}
+                widths={[500, 800, 1100]}
+                sizes="(min-width: 901px) 420px, 78vw"
+                loading="lazy"
+              />
+            </figure>
+            <div class="card__meta">
+              <h3>{p.title}</h3>
+              <span>{p.meta}</span>
+            </div>
+          </a>
+        ))}
+        <a class="card card--end" href={href(WORK.end.href, here)}>
+          <span>{WORK.end.label}</span>
+          <strong>{WORK.end.title}</strong>
+          <i aria-hidden="true"></i>
+        </a>
+      </div>
+
+      <div class="wrap slider__ui" aria-hidden="true">
+        <span class="slider__count">
+          <span data-slider-cur>01</span> / {total}
+        </span>
+        <span class="slider__bar">
+          <i data-slider-bar></i>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>

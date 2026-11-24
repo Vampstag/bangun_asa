@@ -1,0 +1,78 @@
+---
+import { SITE, langOf } from '../data/site';
+import { t } from '../i18n';
+
+const d = t(langOf(Astro.url.pathname));
+const f = d.form;
+// Teks pesan WhatsApp diteruskan ke skrip lewat atribut, supaya ikut bahasa halaman.
+const msg = JSON.stringify({ ...f.message, intro: f.message.intro.replace('{brand}', SITE.brand) });
+---
+
+<!--
+  Form penawaran tanpa backend: data dirangkai jadi pesan dan dikirim lewat WhatsApp.
+  Nomor tujuan diatur di src/data/site.ts (contact.whatsapp). Bidang mengikuti form di situs lama.
+-->
+<form class="qform" data-qform data-wa={SITE.contact.whatsapp} data-msg={msg} data-reveal>
+  <h3 class="qform__title">{f.title}</h3>
+
+  <div class="field">
+    <label for="qf-nama">{f.name}</label>
+    <input id="qf-nama" name="nama" type="text" autocomplete="name" required />
+  </div>
+
+  <div class="qform__row">
+    <div class="field">
+      <label for="qf-jenis">{f.type}</label>
+      <select id="qf-jenis" name="jenis" required>
+        <option value="" disabled selected>
+          {f.choose}
+        </option>
+        {f.projectTypes.map((p) => (
+          <option>{p}</option>
+        ))}
+      </select>
+    </div>
+    <div class="field">
+      <label for="qf-estimasi">{f.estimate}</label>
+      <input id="qf-estimasi" name="estimasi" type="text" placeholder={f.estimatePlaceholder} />
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="qf-lokasi">{f.location}</label>
+    <input id="qf-lokasi" name="lokasi" type="text" placeholder={f.locationPlaceholder} />
+  </div>
+
+  <div class="field">
+    <label for="qf-pesan">{f.details}</label>
+    <textarea id="qf-pesan" name="pesan" rows="3"></textarea>
+  </div>
+
+  <button class="qform__btn" type="submit">
+    {f.submit} <i aria-hidden="true"></i>
+  </button>
+  <p class="qform__note">{f.note}</p>
+</form>
+
+<script>
+  // Dipasang ulang setiap halaman dimuat (termasuk setelah transisi halaman Astro).
+  document.addEventListener('astro:page-load', () => {
+    const form = document.querySelector<HTMLFormElement>('[data-qform]');
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+      const m = JSON.parse(form.dataset.msg ?? '{}') as Record<string, string>;
+      const d = new FormData(form);
+      const val = (k: string) => String(d.get(k) ?? '').trim();
+      const details = [
+        `${m.name}: ${val('nama')}`,
+        `${m.type}: ${val('jenis')}`,
+        val('estimasi') && `${m.estimate}: ${val('estimasi')}`,
+        val('lokasi') && `${m.location}: ${val('lokasi')}`,
+        val('pesan') && `${m.details}: ${val('pesan')}`,
+      ].filter(Boolean);
+      const text = `${m.intro}\n\n${details.join('\n')}`;
+      window.open(`https://wa.me/${form.dataset.wa}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+    });
+  });
+</script>

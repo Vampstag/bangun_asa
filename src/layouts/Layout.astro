@@ -1,0 +1,109 @@
+---
+import '@fontsource-variable/inter-tight';
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import { SITE, altLangUrl, langOf } from '../data/site';
+import { t } from '../i18n';
+import WhatsAppButton from '../components/WhatsAppButton.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+// Bahasa halaman ditentukan dari URL: /en/... = Inggris, selain itu Indonesia.
+const lang = langOf(Astro.url.pathname);
+const d = t(lang);
+
+const { title, description = d.meta.description } = Astro.props;
+const fullTitle = title ? `${title} — ${SITE.brand}` : `${SITE.brand} — ${d.meta.tagline}`;
+
+const base = import.meta.env.BASE_URL;
+const origin = Astro.site ?? Astro.url;
+const abs = (path: string) => new URL(path, origin).href;
+const canonical = abs(Astro.url.pathname);
+const ogImage = abs(`${base}og.png`);
+
+// Versi bahasa lain dari halaman yang sama, untuk <link rel="alternate" hreflang>.
+const here = Astro.url.pathname;
+const idUrl = abs(lang === 'id' ? here : altLangUrl(here));
+const enUrl = abs(lang === 'en' ? here : altLangUrl(here));
+
+// Data terstruktur untuk Google (pencarian lokal): jenis usaha, alamat, kontak, dan lokasi.
+const [lat, lng] = SITE.contact.map.destination.split(',').map(Number);
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'GeneralContractor',
+  name: SITE.legalName,
+  alternateName: SITE.brand,
+  slogan: d.meta.slogan,
+  foundingDate: '2024',
+  description: d.meta.description,
+  inLanguage: lang,
+  url: abs(lang === 'en' ? `${base}en/` : base),
+  logo: abs(`${base}favicon.png`),
+  image: ogImage,
+  telephone: SITE.contact.phones.map((p) => p.tel),
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: 'Perum Bale Agung Latsari No. B3, Kec. Tuban',
+    addressLocality: 'Tuban',
+    addressRegion: 'Jawa Timur',
+    postalCode: '62310',
+    addressCountry: 'ID',
+  },
+  geo: { '@type': 'GeoCoordinates', latitude: lat, longitude: lng },
+  hasMap: SITE.contact.map.openUrl,
+  areaServed: d.meta.areaServed,
+  sameAs: SITE.social.map((s) => s.href),
+};
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#F7F6F3" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="id" href={idUrl} />
+    <link rel="alternate" hreflang="en" href={enUrl} />
+    <link rel="alternate" hreflang="x-default" href={idUrl} />
+
+    <meta property="og:site_name" content={SITE.brand} />
+    <meta property="og:locale" content={d.ogLocale} />
+    <meta property="og:locale:alternate" content={t(lang === 'id' ? 'en' : 'id').ogLocale} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" type="image/png" sizes="32x32" href={`${base}favicon-32.png`} />
+    <link rel="icon" type="image/png" sizes="512x512" href={`${base}favicon.png`} />
+    <link rel="apple-touch-icon" href={`${base}apple-touch-icon.png`} />
+
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    <!-- Kelas "js" menyalakan gaya yang bergantung pada JavaScript; dipasang lagi setelah tiap transisi halaman. -->
+    <script is:inline>
+      document.documentElement.classList.add('js');
+      document.addEventListener('astro:after-swap', () => document.documentElement.classList.add('js'));
+    </script>
+
+    <ClientRouter />
+  </head>
+  <body>
+    <slot />
+    <WhatsAppButton />
+    <script>
+      import { mountMotion, unmountMotion } from '../scripts/motion';
+      // Satu kali didaftarkan; berjalan di muat awal dan di setiap transisi halaman.
+      document.addEventListener('astro:page-load', mountMotion);
+      document.addEventListener('astro:before-swap', unmountMotion);
+    </script>
+  </body>
+</html>

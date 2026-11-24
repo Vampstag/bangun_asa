@@ -1,0 +1,72 @@
+---
+import { Image } from 'astro:assets';
+import { getHome } from '../../data/home';
+import { href, langOf } from '../../data/site';
+import SectionHead from '../SectionHead.astro';
+
+const { SERVICES } = getHome(langOf(Astro.url.pathname));
+
+const here = Astro.url.pathname;
+const pad = (i: number) => String(i + 1).padStart(2, '0');
+---
+
+<section class="svcs" id="layanan">
+  <div class="wrap sec" style="padding-bottom: clamp(48px, 6vw, 96px)">
+    <SectionHead label={SERVICES.label} title={SERVICES.title} />
+  </div>
+
+  <!-- Desktop: panggung menempel, scroll menggeser tab aktif. Mobile: daftar terbuka biasa. -->
+  <div class="tabs" data-tabs style={`--n:${SERVICES.items.length}`}>
+    <div class="tabs__stage">
+      <div class="wrap tabs__grid">
+        <!--
+          Pola akordeon (daftar + tombol + aria-expanded), bukan role="tab":
+          pada mobile semua isi terbuka, pada desktop scroll yang membuka satu per satu.
+          Tombol baru bisa difokus saat mode sticky aktif (diatur motion.ts).
+        -->
+        <ul class="tabs__list">
+          {SERVICES.items.map((s, i) => (
+            <li class:list={['tab', { 'is-active': i === 0 }]} data-tab>
+              <h3 class="tab__h">
+                <button class="tab__btn" type="button" tabindex="-1" aria-controls={`svc-panel-${i}`} data-tab-btn>
+                  <span class="tab__no">{pad(i)}</span>
+                  <span class="tab__title">{s.title}</span>
+                </button>
+              </h3>
+              <div class="tab__body" id={`svc-panel-${i}`}>
+                <div class="tab__in">
+                  <p>{s.text}</p>
+                  <a class="arrow-link" href={href(SERVICES.href, here)}>
+                    {SERVICES.cta} <i aria-hidden="true"></i>
+                  </a>
+                  <figure class="media tab__m">
+                    <Image src={s.image} alt="" widths={[600, 900]} sizes="100vw" loading="lazy" />
+                  </figure>
+                </div>
+              </div>
+              <span class="tab__bar" aria-hidden="true">
+                <i></i>
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <div class="tabs__visual" aria-hidden="true">
+          <figure class="media">
+            {SERVICES.items.map((s, i) => (
+              <Image
+                src={s.image}
+                alt=""
+                widths={[600, 900, 1200]}
+                sizes="(min-width: 1440px) 460px, 36vw"
+                loading="lazy"
+                class:list={{ 'is-active': i === 0 }}
+                data-tab-img
+              />
+            ))}
+          </figure>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

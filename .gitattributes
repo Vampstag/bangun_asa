@@ -1,0 +1,3 @@
+# Semua file teks memakai LF di repo (sama dengan Prettier dan GitHub Actions), apa pun pengaturan Windows.
+* text=auto eol=lf
+*.bat text eol=crlf

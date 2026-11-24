@@ -1,0 +1,42 @@
+---
+import { SITE, whatsappUrl, langOf } from '../data/site';
+import { t } from '../i18n';
+import Lines from './Lines.astro';
+
+interface Props {
+  label?: string;
+  /** Pakai "|" untuk baris baru. */
+  title?: string;
+}
+
+const lang = langOf(Astro.url.pathname);
+const d = t(lang);
+const { label = d.cta.label, title = d.cta.title } = Astro.props;
+// Jika ada isi di dalam <Cta>…</Cta> (mis. form), ia tampil di kolom kanan.
+const hasSlot = Astro.slots.has('default');
+const main = SITE.contact.phones[0];
+---
+
+<section class:list={['cta', { 'cta--form': hasSlot }]} id="kontak" data-theme="dark">
+  <div class:list={['wrap', { cta__grid: hasSlot }]}>
+    <div class="cta__main">
+      <p class="label" data-reveal>
+        {label}
+      </p>
+      <h2 class="cta__title" data-reveal>
+        <Lines text={title} />
+      </h2>
+      <a class="cta__mail" href={whatsappUrl(lang)} target="_blank" rel="noopener" data-reveal>
+        {d.cta.whatsapp} {main.display} <i aria-hidden="true"></i>
+      </a>
+      <p class="cta__note" data-reveal>
+        {d.cta.note}
+      </p>
+    </div>
+    {hasSlot && (
+      <div class="cta__side">
+        <slot />
+      </div>
+    )}
+  </div>
+</section>

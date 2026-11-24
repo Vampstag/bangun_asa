@@ -1,0 +1,23 @@
+---
+import { altLangUrl, langOf } from '../data/site';
+import { t } from '../i18n';
+
+/** Saklar ID / EN. Menautkan ke halaman yang sama dalam bahasa lain. */
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+const here = Astro.url.pathname;
+const lang = langOf(here);
+const urls = { id: lang === 'id' ? here : altLangUrl(here), en: lang === 'en' ? here : altLangUrl(here) };
+---
+
+<div class:list={['lang', className]} role="group" aria-label={t(lang).ui.language}>
+  <a href={urls.id} lang="id" hreflang="id" title="Bahasa Indonesia" aria-current={lang === 'id' ? 'true' : undefined}>
+    ID
+  </a>
+  <a href={urls.en} lang="en" hreflang="en" title="English" aria-current={lang === 'en' ? 'true' : undefined}>
+    EN
+  </a>
+</div>
