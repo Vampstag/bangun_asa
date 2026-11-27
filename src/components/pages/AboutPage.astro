@@ -1,0 +1,165 @@
+---
+/**
+ * Halaman Tentang (/about dan /en/about), pola Heritage: hero foto, pernyataan + daftar, kartu angka, panel visi dan
+ * misi berwarna, bagian gelap "mengapa Bangun Asa", wilayah kerja, tim, legalitas, ajakan, form.
+ */
+import Layout from '../../layouts/Layout.astro';
+import Header from '../Header.astro';
+import Footer from '../Footer.astro';
+import SideNav from '../SideNav.astro';
+import Cta from '../Cta.astro';
+import QuoteForm from '../QuoteForm.astro';
+import Team from '../home/Team.astro';
+import Legal from '../home/Legal.astro';
+import Social from '../home/Social.astro';
+import PageHeroH from './PageHeroH.astro';
+import CtaPhoto from './CtaPhoto.astro';
+import HBtn from './HBtn.astro';
+import Icon from './Icon.astro';
+import { langOf } from '../../data/site';
+import { getHome } from '../../data/home';
+import { getPages } from '../../data/pages';
+import { t } from '../../i18n';
+import type { IconName } from '../../data/icons';
+import heroImage from '../../assets/real/proyek-3.webp';
+import bandImage from '../../assets/uploads/proyek-5.webp';
+
+const lang = langOf(Astro.url.pathname);
+const { about: A, services: S } = getPages(lang);
+const { INTRO, STATS } = getHome(lang);
+const cta = t(lang).navCta.label;
+const pad = (i: number) => String(i + 1).padStart(2, '0');
+const statIcons: IconName[] = ['team', 'map', 'award'];
+const whyIcons: IconName[] = ['plan', 'award', 'consult', 'quality', 'contract'];
+---
+
+<Layout title={A.meta.title} description={A.meta.description}>
+  <Header contactHere />
+  <main id="top">
+    <PageHeroH title={A.title} lead={A.lead} image={heroImage} action={{ label: cta, href: '#kontak' }} />
+
+    <!-- Pernyataan: judul besar, cerita di kiri, apa yang didapat di kanan -->
+    <section class="sec stmt" id="cerita">
+      <div class="wrap">
+        <p class="stmt__title" data-reveal>
+          {INTRO.text}
+        </p>
+        <div class="stmt__grid">
+          <div class="stmt__story">
+            {A.story.map((p) => (
+              <p data-reveal>{p}</p>
+            ))}
+            <div data-reveal>
+              <HBtn href="#kontak" label={cta} />
+            </div>
+          </div>
+          <ul class="stmt__list">
+            {S.included.map((x) => (
+              <li data-reveal>{x}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kartu angka -->
+    <section class="tone tone--top" aria-label={A.statsLabel}>
+      <div class="wrap">
+        <ul class="sx-grid" style={`--n:${STATS.length}`}>
+          {STATS.map((s, i) => (
+            <li class="sx" data-reveal>
+              <div>
+                <p class="sx__n">
+                  {s.plain ? <span>{s.value}</span> : <span data-count={s.value}>{s.value}</span>}
+                  <sup>{s.suffix}</sup>
+                </p>
+                <p class="sx__t">{s.text}</p>
+              </div>
+              <span class="sx__ico">
+                <Icon name={statIcons[i]} />
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <!-- Visi dan misi (panel berwarna) -->
+    <section class="sec vmx" id="visi" aria-label={A.vmLabel}>
+      <div class="wrap">
+        <div class="vmx__panel" data-reveal>
+          <div class="vmx__vision">
+            <span class="tagpill">{A.vision.label}</span>
+            <p>{A.vision.text}</p>
+          </div>
+          <div class="vmx__mission">
+            <p class="vmx__k">{A.mission.label}</p>
+            <ol>
+              {A.mission.items.map((m, i) => (
+                <li>
+                  <span>{pad(i)}</span>
+                  <p>{m}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mengapa Bangun Asa (gelap bertekstur grid) -->
+    <section class="sec dk wy" id="alasan" data-theme="dark">
+      <div class="wrap wy__grid">
+        <div class="wy__side">
+          <span class="tagpill" data-reveal>
+            {INTRO.why.label}
+          </span>
+          <h2 class="wy__title" data-reveal>
+            {A.whyTitle}
+          </h2>
+          <div data-reveal>
+            <HBtn href="#kontak" label={cta} variant="light" />
+          </div>
+        </div>
+        <ol class="wy__list">
+          {INTRO.why.items.map((w, i) => (
+            <li class="wy__card" data-reveal>
+              <span class="wy__ico">
+                <Icon name={whyIcons[i]} />
+              </span>
+              <h3>{w.title}</h3>
+              <p>{w.text}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <!-- Wilayah kerja -->
+    <section class="sec cover-sec">
+      <div class="wrap split cover">
+        <p class="label" data-reveal>
+          {INTRO.coverage.label}
+        </p>
+        <div data-reveal>
+          <ul class="chips">
+            {INTRO.coverage.cities.map((c) => (
+              <li>{c}</li>
+            ))}
+          </ul>
+          <p class="cover__note">{INTRO.coverage.note}</p>
+        </div>
+      </div>
+    </section>
+
+    <Social />
+    <Team />
+    <Legal />
+    <CtaPhoto image={bandImage} />
+    <Cta>
+      <QuoteForm />
+    </Cta>
+  </main>
+  <Footer />
+  <SideNav page="about" />
+</Layout>

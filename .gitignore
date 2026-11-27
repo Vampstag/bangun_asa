@@ -26,3 +26,8 @@ pnpm-debug.log*
 # CMS runtime: disalin dari node_modules oleh tools/sync-cms.cjs
 public/admin/sveltia-cms.js
 public/admin/chunks/
+
+# Dokumen sumber dari klien (compro, katalog, referensi, video asli): besar, berisi nama dan nomor klien. Jangan ikut ke GitHub.
+# Hanya README-nya yang ikut, supaya orang tahu isi folder ini.
+docs/sumber-klien/*
+!docs/sumber-klien/README.md

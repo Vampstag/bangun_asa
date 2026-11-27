@@ -1,0 +1,51 @@
+---
+/**
+ * Model 3D (Three.js) dengan keterangan tahap di bawahnya. `kind`: process (mengikuti scroll), new, renovation, total, commercial.
+ * Three.js baru diunduh saat model hampir terlihat (src/scripts/models/index.ts). Tanpa WebGL, bagian ini disembunyikan.
+ */
+import { langOf } from '../../data/site';
+import { t } from '../../i18n';
+
+interface Props {
+  kind: 'process' | 'new' | 'renovation' | 'total' | 'commercial';
+  class?: string;
+  /** keterangan tahap di bawah model */
+  caption?: boolean;
+}
+const { kind, class: extra, caption = true } = Astro.props;
+const ui = t(langOf(Astro.url.pathname)).ui;
+const caps = ui.model[kind];
+const V = ui.modelViews;
+const views = ['follow', 'structure', 'mep', 'plan'] as const;
+---
+
+<figure class:list={['m3d-wrap', extra]} data-m3d-wrap>
+  <div class="m3d" data-model={kind} data-captions={JSON.stringify(caps)} aria-hidden="true">
+    <canvas></canvas>
+  </div>
+  {caption && (
+    <figcaption class="m3d__cap" data-m3d-cap>
+      {caps[0]}
+    </figcaption>
+  )}
+  {kind === 'process' && (
+    <>
+      <div class="m3d__views" role="group" aria-label={V.label}>
+        {views.map((v) => (
+          <button type="button" data-view={v} aria-pressed={v === 'follow' ? 'true' : 'false'}>
+            {V[v]}
+          </button>
+        ))}
+      </div>
+      <ul class="m3d__legend" data-legend hidden>
+        <li style="--c: #1f6fe0">{V.water}</li>
+        <li style="--c: #2f8a57">{V.waste}</li>
+        <li style="--c: #f0871c">{V.power}</li>
+      </ul>
+    </>
+  )}
+</figure>
+
+<script>
+  import '../../scripts/models/index';
+</script>

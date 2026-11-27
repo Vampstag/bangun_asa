@@ -1,0 +1,52 @@
+{
+  "_info": "Dihasilkan oleh tools/sync-tiktok.cjs (npm run sync:tiktok). Jangan diedit manual; jalankan ulang skrip untuk memperbarui.",
+  "fetchedAt": "2026-11-25",
+  "profile": {
+    "handle": "bangun_asa",
+    "name": "Bangun Asa",
+    "followers": "27.3K",
+    "url": "https://www.tiktok.com/@bangun_asa"
+  },
+  "videos": [
+    {
+      "id": "7709805782874770689",
+      "url": "https://www.tiktok.com/@bangun_asa/video/7709805782874770689",
+      "cover": "tt-7709805782874770689.webp"
+    },
+    {
+      "id": "7708720412439399688",
+      "url": "https://www.tiktok.com/@bangun_asa/video/7708720412439399688",
+      "cover": "tt-7708720412439399688.webp"
+    },
+    {
+      "id": "7706136900523904308",
+      "url": "https://www.tiktok.com/@bangun_asa/video/7706136900523904308",
+      "cover": "tt-7706136900523904308.webp"
+    },
+    {
+      "id": "7704636986040290567",
+      "url": "https://www.tiktok.com/@bangun_asa/video/7704636986040290567",
+      "cover": "tt-7704636986040290567.webp"
+    },
+    {
+      "id": "7701999607621979410",
+      "url": "https://www.tiktok.com/@bangun_asa/video/7701999607621979410",
+      "cover": "tt-7701999607621979410.webp"
+    },
+    {
+      "id": "7640731910037114130",
+      "url": "https://www.tiktok.com/@bangun_asa/video/7640731910037114130",
+      "cover": "tt-7640731910037114130.webp"
+    },
+    {
+      "id": "7612924579593342229",
+      "url": "https://www.tiktok.com/@bangun_asa/video/7612924579593342229",
+      "cover": "tt-7612924579593342229.webp"
+    },
+    {
+      "id": "7571255947650157842",
+      "url": "https://www.tiktok.com/@bangun_asa/video/7571255947650157842",
+      "cover": "tt-7571255947650157842.webp"
+    }
+  ]
+}

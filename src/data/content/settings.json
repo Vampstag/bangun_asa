@@ -3,13 +3,21 @@
   "phones": [
     {
       "name": "CS Nana",
-      "display": "0851 3851 6234"
+      "display": "0851 3851 6234",
+      "active": true
     },
     {
       "name": "CS Eka",
-      "display": "0878 5672 7642"
+      "display": "0878 5672 7642",
+      "active": true
+    },
+    {
+      "name": "CS Assa",
+      "display": "0851 9625 0151",
+      "active": false
     }
   ],
   "instagram": "https://www.instagram.com/bangun_asa",
-  "tiktok": "https://www.tiktok.com/@bangun_asa"
+  "tiktok": "https://www.tiktok.com/@bangun_asa",
+  "wa_mode": "giliran"
 }

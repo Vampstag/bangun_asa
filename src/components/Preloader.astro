@@ -1,0 +1,465 @@
+---
+/**
+ * Layar pembuka: simbol atap dari logo, nama besar di kiri bawah yang bergulir dari huruf tipis ke tebal ("Asa" menjadi
+ * merah), keterangan kecil, garis progres di tepi atas, dan pemutar kecil di kanan bawah. Layar lalu tersapu ke atas
+ * dengan tepi putih dan merah. Muncul setiap kali halaman dibuka (seperti referensi OH Architecture), dalam dua panjang:
+ *   - penuh: kunjungan pertama di sebuah tab, ±3 detik, paling lama ±4 detik;
+ *   - singkat: pindah halaman atau muat ulang, ±1,4 detik.
+ * Dilewati: pengguna memilih "kurangi animasi", tanpa JavaScript, tombol kembali/maju, ganti bahasa, dan tautan yang
+ * menuju bagian tertentu (mis. #kontak), supaya calon klien tidak tertahan.
+ * Untuk melihat versi penuh lagi saat menguji: tambahkan ?intro pada alamat.
+ *
+ * Tampil atau tidak saat muat penuh diputuskan di <head> (Layout.astro) supaya tidak ada kedipan; pengendalinya skrip
+ * biasa di bawah markup supaya langsung jalan tanpa menunggu modul. Pindah halaman ditangani skrip modul di bawahnya.
+ * Setelah selesai, kejadian "ba:intro-done" memulai animasi halaman.
+ */
+import PreloaderScreen from './PreloaderScreen.astro';
+---
+
+<PreloaderScreen id="pre" />
+<template id="pre-tpl">
+  <PreloaderScreen class="pre--short pre--enter" />
+</template>
+
+<script is:inline>
+  (() => {
+    const root = document.documentElement;
+    const el = document.getElementById('pre');
+    if (!el) return;
+    if (!root.classList.contains('is-loading')) {
+      el.remove();
+      return;
+    }
+    const line = el.querySelector('.pre__line');
+    const theme = document.querySelector('meta[name="theme-color"]');
+    const themeColor = theme ? theme.getAttribute('content') : '';
+    theme?.setAttribute('content', '#0d0b0b');
+    let start = performance.now();
+    let loaded = false;
+    let done = false;
+    // versi singkat: muat ulang atau buka halaman lain di tab yang sama
+    const short = root.classList.contains('is-short');
+    if (short) el.classList.add('pre--short');
+    const time = short
+      ? { min: 1000, max: 2400, run: 900, roll: 80, leave: 440 }
+      : { min: 2000, max: 3400, run: 2000, roll: 160, leave: 660 };
+
+    const bar = (value, ms) => {
+      line.style.transition = `transform ${ms}ms cubic-bezier(.3, .6, .2, 1)`;
+      line.style.transform = `scaleX(${value})`;
+    };
+    const leave = () => {
+      root.classList.remove('is-loading');
+      root.classList.add('was-intro');
+      el.classList.add('is-leaving');
+      theme?.setAttribute('content', themeColor);
+      document.dispatchEvent(new Event('ba:intro-done'));
+      setTimeout(() => el.remove(), 1000);
+      setTimeout(() => root.classList.remove('was-intro'), 2200);
+    };
+    const check = () => {
+      if (done) return;
+      const t = performance.now() - start;
+      // ada batas minimal supaya animasinya utuh, dan batas maksimal walau jaringan lambat
+      if ((loaded && t >= time.min) || t >= time.max) {
+        done = true;
+        bar(1, 300);
+        setTimeout(() => el.classList.add('is-out'), time.roll);
+        setTimeout(leave, time.leave);
+      } else setTimeout(check, 100);
+    };
+    const go = () => {
+      if (el.classList.contains('is-go')) return;
+      el.classList.add('is-go');
+      start = performance.now();
+      requestAnimationFrame(() => requestAnimationFrame(() => bar(0.84, time.run)));
+      check();
+    };
+
+    addEventListener('load', () => (loaded = true), { once: true });
+    // huruf baru bergerak setelah font siap, supaya tidak berganti bentuk di tengah animasi
+    const font = '"Inter Tight Variable"';
+    const logo = el.querySelector('.pre__mark img');
+    Promise.all([
+      document.fonts?.load(`700 100px ${font}`),
+      document.fonts?.load(`300 100px ${font}`),
+      logo?.decode(),
+    ]).then(go, go);
+    setTimeout(go, 700);
+  })();
+</script>
+
+<script>
+  // Pindah halaman: layar naik menutup, halaman ditukar di baliknya, lalu memudar. Elemennya ditempel pada <html>
+  // supaya tidak ikut terhapus saat <body> diganti.
+  let cover: HTMLElement | null = null;
+  let start = 0;
+  let timers: number[] = [];
+  const root = () => document.documentElement;
+  const later = (fn: () => void, ms: number) => timers.push(window.setTimeout(fn, ms));
+  // alamat tanpa awalan bahasa, untuk mengenali "halaman yang sama dalam bahasa lain"
+  const page = (path: string) => path.replace(/\/en(?=\/|$)/, '').replace(/\/+$/, '');
+
+  const bar = (value: number, ms: number) => {
+    const line = cover?.querySelector<HTMLElement>('.pre__line');
+    if (!line) return;
+    line.style.transition = `transform ${ms}ms cubic-bezier(.3, .6, .2, 1)`;
+    line.style.transform = `scaleX(${value})`;
+  };
+  const drop = () => {
+    timers.forEach((t) => window.clearTimeout(t));
+    timers = [];
+    cover?.remove();
+    cover = null;
+  };
+  const finish = () => {
+    const el = cover;
+    if (!el) return;
+    timers.forEach((t) => window.clearTimeout(t));
+    timers = [];
+    bar(1, 220);
+    later(() => el.classList.add('is-out'), 80);
+    later(() => {
+      root().classList.remove('is-loading');
+      root().classList.add('was-intro');
+      el.classList.remove('pre--enter');
+      el.classList.add('is-leaving');
+      document.dispatchEvent(new Event('ba:intro-done'));
+    }, 440);
+    later(drop, 1200);
+    later(() => root().classList.remove('was-intro'), 2000);
+  };
+
+  document.addEventListener('astro:before-preparation', (e) => {
+    drop();
+    root().classList.remove('was-intro');
+    if (
+      matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      e.navigationType === 'traverse' ||
+      e.to.hash ||
+      page(e.from.pathname) === page(e.to.pathname)
+    )
+      return;
+    const tpl = document.querySelector<HTMLTemplateElement>('#pre-tpl');
+    const el = tpl?.content.firstElementChild?.cloneNode(true) as HTMLElement | undefined;
+    if (!el) return;
+    cover = el;
+    root().append(el);
+    void el.offsetWidth;
+    el.classList.add('is-go');
+    start = performance.now();
+    requestAnimationFrame(() => requestAnimationFrame(() => bar(0.84, 900)));
+    // halaman baru baru ditukar setelah layar menutup penuh
+    const load = e.loader;
+    e.loader = async () => {
+      await Promise.all([load(), new Promise((done) => setTimeout(done, 460))]);
+    };
+    // pengaman bila halaman baru tidak pernah selesai dimuat
+    later(finish, 6000);
+  });
+  document.addEventListener('astro:before-swap', (e) => {
+    if (!cover) return;
+    // layar bawaan halaman baru tidak dipakai; animasi halaman menunggu sampai layar ini memudar
+    e.newDocument.getElementById('pre')?.remove();
+    e.newDocument.documentElement.classList.add('is-loading');
+  });
+  document.addEventListener('astro:page-load', () => {
+    if (cover) later(finish, Math.max(0, 1000 - (performance.now() - start)));
+  });
+</script>
+
+<style is:global>
+  .pre {
+    /* merah diambil dari simbol logo, supaya sama persis */
+    --pre-red: #f8132d;
+    display: none;
+  }
+  html.is-loading,
+  html.is-loading body {
+    overflow: hidden;
+  }
+  html.is-loading .pre,
+  html > .pre,
+  .pre.is-leaving {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    /* saat pindah halaman layar ini berada di luar <body>, jadi hurufnya ditetapkan di sini */
+    font: 400 1.0625rem/1.65 var(--font);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    color: #fff;
+  }
+  .pre__sheet {
+    position: absolute;
+    inset: 0;
+  }
+  .pre__sheet--red {
+    background: var(--pre-red);
+  }
+  .pre__sheet--white {
+    background: var(--bg);
+  }
+  .pre__sheet--dark {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background: #0d0b0b;
+  }
+  /* keluar: lapisan gelap naik dulu, disusul tepi putih lalu merah */
+  .pre.is-leaving {
+    pointer-events: none;
+  }
+  .pre.is-leaving .pre__sheet {
+    animation: pre-lift 0.56s cubic-bezier(0.76, 0, 0.24, 1) both;
+  }
+  .pre.is-leaving .pre__sheet--white {
+    animation-delay: 0.045s;
+  }
+  .pre.is-leaving .pre__sheet--red {
+    animation-delay: 0.1s;
+  }
+
+  /* simbol atap */
+  .pre__mark {
+    position: relative;
+    flex: 0 0 100%;
+    height: clamp(72px, 7.8vw, 128px);
+    margin-bottom: clamp(4px, 1vw, 16px);
+    transition:
+      opacity 0.3s ease,
+      translate 0.4s var(--ease);
+  }
+  .pre__mark img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: auto;
+    height: 100%;
+    max-width: none;
+    clip-path: inset(100% 50% 0 0);
+  }
+  .pre__mark img + img {
+    clip-path: inset(100% 0 0 50%);
+  }
+  .pre.is-go .pre__mark img {
+    animation: pre-roof-l 0.75s cubic-bezier(0.65, 0, 0.25, 1) 0.15s forwards;
+  }
+  .pre.is-go .pre__mark img + img {
+    animation: pre-roof-r 0.75s cubic-bezier(0.65, 0, 0.25, 1) 0.45s forwards;
+  }
+  .pre.pre--short.is-go .pre__mark img {
+    animation: pre-roof-l 0.46s cubic-bezier(0.65, 0, 0.25, 1) 0.2s forwards;
+  }
+  .pre.pre--short.is-go .pre__mark img + img {
+    animation: pre-roof-r 0.46s cubic-bezier(0.65, 0, 0.25, 1) 0.36s forwards;
+  }
+  .pre.is-out .pre__mark {
+    opacity: 0;
+    translate: 0 -18px;
+  }
+  .pre__line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--pre-red);
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  .pre__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    column-gap: clamp(20px, 2.6vw, 44px);
+    row-gap: 12px;
+    padding: 0 max(var(--gut), env(safe-area-inset-right)) calc(clamp(20px, 3.4vw, 40px) + env(safe-area-inset-bottom))
+      var(--gut);
+  }
+  .pre__word {
+    display: flex;
+    column-gap: 0.22em;
+    font-size: 12.4vw;
+    line-height: 1.22;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+  }
+  .pre__w {
+    display: inline-flex;
+  }
+  .pre__ch {
+    display: inline-grid;
+    justify-items: center;
+    height: 1.22em;
+    overflow: hidden;
+    margin-right: -0.012em;
+  }
+  .pre__a,
+  .pre__b {
+    grid-area: 1 / 1;
+    transform: translateY(112%);
+  }
+  .pre__a {
+    font-weight: 300;
+  }
+  .pre__b {
+    font-weight: 700;
+  }
+  /* aksen merah: "Asa" datang berwarna merah saat menebal */
+  .pre__w + .pre__w .pre__b {
+    color: var(--pre-red);
+  }
+  /* gelombang pertama: huruf tipis naik; gelombang kedua: huruf tebal mendorongnya keluar ke atas */
+  .pre.is-go .pre__a {
+    animation:
+      pre-in 0.65s cubic-bezier(0.2, 0.7, 0.15, 1) calc(var(--i) * 32ms) forwards,
+      pre-out 0.75s cubic-bezier(0.7, 0, 0.18, 1) calc(900ms + var(--i) * 42ms) forwards;
+  }
+  .pre.is-go .pre__b {
+    animation: pre-in 0.75s cubic-bezier(0.7, 0, 0.18, 1) calc(900ms + var(--i) * 42ms) forwards;
+  }
+  .pre.is-out .pre__b {
+    animation: pre-out 0.48s cubic-bezier(0.65, 0, 0.35, 1) calc(var(--i) * 14ms) both;
+  }
+  /* versi singkat: gelombang yang sama, lebih rapat */
+  .pre.pre--short.is-go .pre__a {
+    animation:
+      pre-in 0.4s cubic-bezier(0.2, 0.7, 0.15, 1) calc(var(--i) * 16ms) forwards,
+      pre-out 0.45s cubic-bezier(0.7, 0, 0.18, 1) calc(320ms + var(--i) * 22ms) forwards;
+  }
+  .pre.pre--short.is-go .pre__b {
+    animation: pre-in 0.45s cubic-bezier(0.7, 0, 0.18, 1) calc(320ms + var(--i) * 22ms) forwards;
+  }
+  .pre.pre--short.is-out .pre__b {
+    animation: pre-out 0.32s cubic-bezier(0.65, 0, 0.35, 1) calc(var(--i) * 9ms) both;
+  }
+  /* pindah halaman: tepi merah naik dulu, disusul putih lalu gelap */
+  .pre--enter .pre__sheet {
+    animation: pre-rise 0.34s cubic-bezier(0.7, 0, 0.2, 1) both;
+  }
+  .pre--enter .pre__sheet--white {
+    animation-delay: 0.045s;
+  }
+  .pre--enter .pre__sheet--dark {
+    animation-delay: 0.08s;
+  }
+  .pre__desc,
+  .pre__spin {
+    transition: opacity 0.3s ease;
+  }
+  .pre.is-out .pre__desc,
+  .pre.is-out .pre__spin {
+    animation: none;
+    opacity: 0;
+  }
+  .pre__desc {
+    display: grid;
+    padding-bottom: 2.1vw;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.82);
+    opacity: 0;
+  }
+  .pre.is-go .pre__desc {
+    animation: pre-fade 0.7s ease 0.45s forwards;
+  }
+  .pre.pre--short.is-go .pre__desc {
+    animation: pre-fade 0.4s ease 0.18s forwards;
+  }
+  .pre.pre--short.is-out .pre__desc {
+    animation: none;
+  }
+  .pre__spin {
+    width: 16px;
+    height: 16px;
+    margin-left: auto;
+    margin-bottom: 2.1vw;
+    border: 1.5px solid rgba(255, 255, 255, 0.22);
+    border-top-color: var(--pre-red);
+    border-radius: 50%;
+    animation: pre-spin 0.9s linear infinite;
+  }
+  @media (max-width: 900px) {
+    .pre__word {
+      flex: 0 0 100%;
+      flex-direction: column;
+      font-size: min(25vw, 22svh);
+      line-height: 1.18;
+    }
+    .pre__ch {
+      height: 1.18em;
+    }
+    .pre__w:first-child {
+      margin-bottom: -0.14em;
+    }
+    .pre__desc,
+    .pre__spin {
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+  }
+  /* header ikut turun masuk setelah layar pembuka memudar */
+  html.was-intro .hdr > * {
+    animation: pre-header 0.9s var(--ease) 0.3s backwards;
+  }
+  @keyframes pre-rise {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+  @keyframes pre-lift {
+    from {
+      clip-path: inset(0 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 100% 0);
+    }
+  }
+  @keyframes pre-roof-l {
+    to {
+      clip-path: inset(0 50% 0 0);
+    }
+  }
+  @keyframes pre-roof-r {
+    to {
+      clip-path: inset(0 0 0 50%);
+    }
+  }
+  @keyframes pre-in {
+    to {
+      transform: translateY(0);
+    }
+  }
+  @keyframes pre-out {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-112%);
+    }
+  }
+  @keyframes pre-fade {
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes pre-spin {
+    to {
+      rotate: 360deg;
+    }
+  }
+  @keyframes pre-header {
+    from {
+      opacity: 0;
+      translate: 0 -14px;
+    }
+  }
+</style>

@@ -2,6 +2,7 @@
 import { Image } from 'astro:assets';
 import { getHome } from '../../data/home';
 import { langOf, whatsappUrl } from '../../data/site';
+import SwipeNav from '../SwipeNav.astro';
 
 const lang = langOf(Astro.url.pathname);
 const { QUOTE } = getHome(lang);
@@ -22,7 +23,7 @@ const mark = `${import.meta.env.BASE_URL}favicon.png`;
           <span>{l}</span>
         ))}
       </h2>
-      <div class="quote__col" data-quote-col>
+      <div class="quote__col" id="geser-testimoni" data-quote-col>
         {QUOTE.items.map((it) => (
           <figure class="quote__card">
             <span class="quote__chip" aria-hidden="true">
@@ -49,6 +50,7 @@ const mark = `${import.meta.env.BASE_URL}favicon.png`;
   </div>
 
   <div class="wrap">
+    <SwipeNav target="geser-testimoni" total={QUOTE.items.length} />
     <div class="quote__share">
       <p>{QUOTE.share}</p>
       <a class="arrow-link" href={whatsappUrl(lang, QUOTE.shareText)} target="_blank" rel="noopener">

@@ -1,0 +1,523 @@
+---
+/**
+ * Kalkulator estimasi biaya dan durasi (interaktif, tanpa server). Dua mode: dari luas bangunan ke biaya, atau dari
+ * anggaran ke luas yang realistis. Logika dan tarif ada di src/data/calculator.ts + src/data/content/calculator.json.
+ * Hasil bisa dikirim ke WhatsApp atau mengisi form penawaran di halaman yang sama.
+ */
+import { SITE, langOf } from '../../data/site';
+import { t } from '../../i18n';
+import {
+  CALC,
+  DEFAULT_PARTS,
+  LIMITS,
+  PARTS,
+  breakdown,
+  estimateCost,
+  estimateWeeks,
+  fill,
+  fmtMonth,
+  fmtRange,
+  fmtPerM2,
+  fmtRp,
+  fmtWeeks,
+  type Input,
+} from '../../data/calculator';
+import HBtn from '../pages/HBtn.astro';
+
+const lang = langOf(Astro.url.pathname);
+const C = t(lang).pages.calculator;
+const words = C.units;
+
+// Keadaan awal (dirender di server supaya tidak ada kotak kosong sebelum skrip berjalan).
+const start: Input = { type: 'new', finish: 'standard', region: 'tuban', floors: 1 };
+const area = LIMITS.area.def;
+const cost = estimateCost(start, area)!;
+const weeks = estimateWeeks(start, area)!;
+const big = fmtRange(cost.low, cost.high, words, lang);
+const durationText = fmtWeeks(weeks, words, lang);
+const rows = breakdown(start).map(({ part, pct }) => ({
+  pct,
+  label: C.parts[part],
+  amount: fmtRp((cost.mid * pct) / 100, words, lang),
+}));
+const regions = [...CALC.regions.map((r) => ({ k: r.key, label: r.name })), { k: 'other', label: C.regionOther }];
+const waHref = `https://wa.me/${SITE.contact.whatsapp}?text=${encodeURIComponent(
+  fill(C.waMessage, {
+    brand: SITE.brand,
+    type: C.types.new,
+    partsLine: '',
+    sizeLabel: C.sizeLabels.area,
+    size: `${area} m²`,
+    floors: C.floors[1],
+    finish: C.finishes.standard,
+    region: regions[0].label,
+    cost: big,
+    duration: durationText,
+  }),
+)}`;
+
+const types = (['new', 'partial', 'full', 'commercial'] as const).map((k) => ({
+  k,
+  label: C.types[k],
+  hint: C.typeHints[k],
+}));
+const finishes = (['standard', 'mid', 'premium'] as const).map((k) => ({
+  k,
+  label: C.finishes[k],
+  hint: C.finishHints[k],
+}));
+const floorsOpts = ([1, 2, 3] as const).map((k) => ({ k, label: C.floors[k] }));
+
+// Teks yang dibutuhkan skrip di browser.
+const strings = {
+  lang,
+  words,
+  wa: SITE.contact.whatsapp,
+  brand: SITE.brand,
+  result: C.result,
+  parts: C.parts,
+  partsLine: C.partsLine,
+  partsNote: C.partsNote,
+  types: C.types,
+  floors: C.floors,
+  finishes: C.finishes,
+  waMessage: C.waMessage,
+  sizeLabels: C.sizeLabels,
+  formNote: C.formNote,
+  regionNote: fill(C.regionNote, { year: CALC.ikkYear }),
+  regionOtherNote: C.regionOtherNote,
+};
+---
+
+<section class="sec calc" id="kalkulator" data-calc aria-label={C.aria}>
+  <script is:inline type="application/json" data-calc-i18n set:html={JSON.stringify(strings)} />
+  <div class="wrap">
+    {!CALC.confirmed && (
+      <p class="calc__draft" role="note">
+        {C.draft}
+      </p>
+    )}
+
+    <div class="calc__grid">
+      <form class="calc__form" data-calc-form-root novalidate onsubmit="return false">
+        <fieldset class="calc__modes">
+          <legend class="sr-only">{C.aria}</legend>
+          {(['area', 'budget'] as const).map((m, i) => (
+            <label class="seg">
+              <input type="radio" name="mode" value={m} checked={i === 0} />
+              <span>{C.modes[m]}</span>
+            </label>
+          ))}
+        </fieldset>
+
+        <fieldset class="calc__set">
+          <legend>{C.fields.type}</legend>
+          <div class="opts opts--2">
+            {types.map((o, i) => (
+              <label class="opt">
+                <input type="radio" name="type" value={o.k} checked={i === 0} />
+                <span class="opt__t">{o.label}</span>
+                <span class="opt__h">{o.hint}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset class="calc__set" data-when-type="partial" hidden>
+          <legend>{C.fields.parts}</legend>
+          <p class="calc__hint">{C.fields.partsHint}</p>
+          <div class="parts">
+            {PARTS.map((p) => (
+              <label class="part">
+                <input type="checkbox" name="part" value={p} checked={DEFAULT_PARTS.includes(p)} />
+                <span>{C.parts[p]}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div class="calc__set" data-when="area">
+          <label class="calc__lab" for="calc-area">
+            {C.fields.area}
+          </label>
+          <p class="calc__hint">{C.fields.areaHint}</p>
+          <div class="rng">
+            <input
+              type="range"
+              id="calc-area-r"
+              aria-label={C.fields.area}
+              min={LIMITS.area.min}
+              max={LIMITS.area.max}
+              step={LIMITS.area.step}
+              value={LIMITS.area.def}
+            />
+            <span class="num">
+              <input
+                type="number"
+                id="calc-area"
+                inputmode="numeric"
+                min={LIMITS.area.min}
+                max={LIMITS.area.max}
+                step={LIMITS.area.step}
+                value={LIMITS.area.def}
+              />
+              <i>m²</i>
+            </span>
+          </div>
+        </div>
+
+        <div class="calc__set" data-when="budget" hidden>
+          <label class="calc__lab" for="calc-budget">
+            {C.fields.budget}
+          </label>
+          <p class="calc__hint">{C.fields.budgetHint}</p>
+          <div class="rng">
+            <input
+              type="range"
+              id="calc-budget-r"
+              aria-label={C.fields.budget}
+              min={LIMITS.budget.min}
+              max={LIMITS.budget.max}
+              step={LIMITS.budget.step}
+              value={LIMITS.budget.def}
+            />
+            <span class="num">
+              <i>Rp</i>
+              <input
+                type="number"
+                id="calc-budget"
+                inputmode="numeric"
+                min={LIMITS.budget.min}
+                max={LIMITS.budget.max}
+                step={LIMITS.budget.step}
+                value={LIMITS.budget.def}
+              />
+              <i>{words.juta}</i>
+            </span>
+          </div>
+        </div>
+
+        <fieldset class="calc__set">
+          <legend>{C.fields.floors}</legend>
+          <div class="opts opts--3">
+            {floorsOpts.map((o, i) => (
+              <label class="opt opt--sm">
+                <input type="radio" name="floors" value={o.k} checked={i === 0} />
+                <span class="opt__t">{o.label}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset class="calc__set">
+          <legend>{C.fields.finish}</legend>
+          <div class="opts opts--3">
+            {finishes.map((o, i) => (
+              <label class="opt">
+                <input type="radio" name="finish" value={o.k} checked={i === 0} />
+                <span class="opt__t">{o.label}</span>
+                <span class="opt__h">{o.hint}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <div class="calc__set">
+          <label class="calc__lab" for="calc-region">
+            {C.fields.region}
+          </label>
+          <select id="calc-region" name="region">
+            {regions.map((o) => (
+              <option value={o.k}>{o.label}</option>
+            ))}
+          </select>
+          <p class="calc__hint calc__hint--after" data-region-note>
+            {fill(C.regionNote, { year: CALC.ikkYear })}
+          </p>
+        </div>
+      </form>
+
+      <aside class="calc__result" id="calc-result" aria-live="polite" aria-label={C.result.costTitle}>
+        <p class="calc__k" data-out="kicker">
+          {C.result.costTitle}
+        </p>
+        <p class="calc__big" data-out="big">
+          {big}
+        </p>
+        <p class="calc__sub" data-out="sub">
+          {fill(C.result.perM2, { rate: fmtPerM2(cost.perM2, words, lang) })}
+        </p>
+        <p class="calc__warn" data-out="warn" hidden>
+          {C.result.tooLow}
+        </p>
+
+        <dl class="calc__meta" data-priced>
+          <div>
+            <dt>{C.result.middle}</dt>
+            <dd data-out="mid">{fmtRp(cost.mid, words, lang)}</dd>
+          </div>
+          <div>
+            <dt>{C.result.duration}</dt>
+            <dd data-out="duration">{durationText}</dd>
+          </div>
+        </dl>
+
+        <div class="calc__bars" data-priced>
+          <p class="calc__bt">{C.result.breakdownTitle}</p>
+          <ul data-out="bars">
+            {rows.map((r) => (
+              <li>
+                <span class="b__l">{r.label}</span>
+                <span class="b__a">{r.amount}</span>
+                <span class="b__bar">
+                  <i style={`width:${r.pct}%`} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p class="calc__disc" data-priced>
+          {C.result.disclaimer}
+        </p>
+        <p class="calc__date" data-priced>
+          {fill(C.result.dataDate, { month: fmtMonth(CALC.dataDate, lang) })} · <a href="#dasar">{C.basis.label}</a>
+        </p>
+
+        <div class="calc__act">
+          <HBtn variant="light" href={waHref} label={C.actions.whatsapp} target="_blank" rel="noopener" data-calc-wa />
+          <HBtn variant="ghost" href="#kontak" label={C.actions.form} data-calc-form />
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Ringkasan hasil yang menempel di bawah layar sempit; muncul saat kartu hasil belum terlihat (lihat skrip). -->
+  <a class="calc__chip" href="#calc-result" data-calc-chip>
+    <span class="calc__chip-t">
+      <small data-out="chipk">{C.result.costTitle}</small>
+      <b data-out="chip">{big}</b>
+    </span>
+    <i aria-hidden="true">↓</i>
+  </a>
+</section>
+
+<script>
+  import {
+    LIMITS,
+    breakdown,
+    estimateArea,
+    estimateCost,
+    estimateWeeks,
+    fill,
+    fmtAreaRange,
+    fmtRange,
+    fmtPerM2,
+    fmtRp,
+    fmtWeeks,
+    type Floors,
+    type Input,
+    type Part,
+    type ProjectType,
+  } from '../../data/calculator';
+
+  type Mode = 'area' | 'budget';
+
+  document.addEventListener('astro:page-load', () => {
+    const root = document.querySelector<HTMLElement>('[data-calc]');
+    if (!root) return;
+    const S = JSON.parse(root.querySelector('script[data-calc-i18n]')?.textContent ?? '{}');
+    const $ = <T extends HTMLElement>(sel: string) => root.querySelector<T>(sel);
+    const out = (name: string) => $<HTMLElement>(`[data-out="${name}"]`);
+    const checked = (name: string) =>
+      root.querySelector<HTMLInputElement>(`input[name="${name}"]:checked`)?.value ?? '';
+
+    const areaR = $<HTMLInputElement>('#calc-area-r')!;
+    const areaN = $<HTMLInputElement>('#calc-area')!;
+    const budR = $<HTMLInputElement>('#calc-budget-r')!;
+    const budN = $<HTMLInputElement>('#calc-budget')!;
+    const region = $<HTMLSelectElement>('#calc-region')!;
+    const wa = $<HTMLAnchorElement>('[data-calc-wa]');
+    const formBtn = $<HTMLAnchorElement>('[data-calc-form]');
+
+    let summary: Record<string, string> = {};
+    const clamp = (v: number, min: number, max: number, def: number) =>
+      Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : def;
+
+    const render = () => {
+      const mode = checked('mode') as Mode;
+      const type = checked('type') as ProjectType;
+      root.querySelectorAll<HTMLElement>('[data-when]').forEach((el) => (el.hidden = el.dataset.when !== mode));
+      root
+        .querySelectorAll<HTMLElement>('[data-when-type]')
+        .forEach((el) => (el.hidden = el.dataset.whenType !== type));
+
+      const parts = Array.from(root.querySelectorAll<HTMLInputElement>('input[name="part"]:checked')).map(
+        (el) => el.value as Part,
+      );
+      const input: Input = {
+        type,
+        finish: checked('finish') as Input['finish'],
+        floors: Number(checked('floors')) as Floors,
+        region: region.value,
+        parts,
+      };
+      const words = S.words;
+      const lang = S.lang;
+      const area = clamp(Number(areaN.value), LIMITS.area.min, LIMITS.area.max, LIMITS.area.def);
+      const budget = clamp(Number(budN.value), LIMITS.budget.min, LIMITS.budget.max, LIMITS.budget.def) * 1e6;
+
+      let total = 0; // total biaya (rupiah) yang dipakai untuk pembagian
+      let size = area; // luas (m2) yang dipakai untuk durasi
+      let bigText = '–';
+      let subText = '';
+      let midText = '–';
+      let kicker: string = mode === 'area' ? S.result.costTitle : S.result.areaTitle;
+      let warn = '';
+      // komersial: sengaja tanpa angka; renovasi sebagian tanpa bagian terpilih: minta pilih dulu
+      const custom = type === 'commercial';
+      let priced = !custom;
+
+      if (custom) {
+        kicker = S.result.customTitle;
+        bigText = S.result.customBig;
+        subText = S.result.customSub;
+      } else if (mode === 'area') {
+        const e = estimateCost(input, area);
+        if (e) {
+          total = e.mid;
+          bigText = fmtRange(e.low, e.high, words, lang);
+          subText = fill(S.result.perM2, { rate: fmtPerM2(e.perM2, words, lang) });
+          midText = fmtRp(e.mid, words, lang);
+        }
+      } else {
+        const a = estimateArea(input, budget);
+        if (a) {
+          size = a.mid;
+          total = budget;
+          subText = fill(S.result.withBudget, { budget: fmtRp(budget, words, lang) });
+          if (a.mid < 12) {
+            warn = S.result.tooLow;
+            priced = false;
+          } else {
+            bigText = fmtAreaRange(a.low, a.high, lang);
+            midText = `${Math.round(a.mid).toLocaleString(lang === 'en' ? 'en-US' : 'id-ID')} m²`;
+          }
+        }
+      }
+      if (type === 'partial' && !parts.length) {
+        warn = S.result.noParts;
+        priced = false;
+      }
+
+      const weeks = priced ? estimateWeeks(input, size) : null;
+      const durationText: string = weeks ? fmtWeeks(weeks, words, lang) : S.result.durationSurvey;
+
+      out('kicker')!.textContent = kicker;
+      out('big')!.textContent = bigText;
+      out('big')!.classList.toggle('is-text', custom);
+      out('sub')!.textContent = subText;
+      out('mid')!.textContent = midText;
+      out('chipk')!.textContent = kicker;
+      out('chip')!.textContent = bigText;
+      out('duration')!.textContent = durationText;
+      out('warn')!.textContent = warn;
+      out('warn')!.hidden = !warn;
+      root.querySelectorAll<HTMLElement>('[data-priced]').forEach((el) => (el.hidden = !priced));
+      out('bars')!.innerHTML = priced
+        ? breakdown(input)
+            .map(
+              ({ part, pct }) =>
+                `<li><span class="b__l">${S.parts[part]}</span><span class="b__a">${fmtRp((total * pct) / 100, words, lang)}</span><span class="b__bar"><i style="width:${pct}%"></i></span></li>`,
+            )
+            .join('')
+        : '';
+      const note = $<HTMLElement>('[data-region-note]');
+      if (note) note.textContent = region.value === 'other' ? S.regionOtherNote : S.regionNote;
+
+      const partNames = type === 'partial' ? parts.map((p) => S.parts[p]).join(', ') : '';
+      summary = {
+        type: S.types[input.type],
+        sizeLabel: mode === 'area' ? S.sizeLabels.area : S.sizeLabels.budget,
+        size: mode === 'area' ? `${Math.round(area)} m²` : fmtRp(budget, words, lang),
+        cost: bigText,
+        duration: durationText,
+        floors: S.floors[input.floors],
+        finish: S.finishes[input.finish],
+        region: region.options[region.selectedIndex]?.text ?? '',
+        partsLine: partNames ? fill(S.partsLine, { parts: partNames }) : '',
+        partsNote: partNames ? fill(S.partsNote, { parts: partNames }) : '',
+      };
+      if (wa) {
+        wa.href = `https://wa.me/${S.wa}?text=${encodeURIComponent(fill(S.waMessage, { ...summary, brand: S.brand }))}`;
+      }
+    };
+
+    // Penggeser dan kolom angka saling sinkron.
+    const link = (r: HTMLInputElement, n: HTMLInputElement, min: number, max: number, def: number) => {
+      r.addEventListener('input', () => {
+        n.value = r.value;
+      });
+      n.addEventListener('input', () => {
+        const v = Number(n.value);
+        if (Number.isFinite(v) && n.value !== '') r.value = String(clamp(v, min, max, def));
+      });
+      n.addEventListener('change', () => {
+        n.value = String(clamp(Number(n.value), min, max, def));
+        r.value = n.value;
+      });
+    };
+    link(areaR, areaN, LIMITS.area.min, LIMITS.area.max, LIMITS.area.def);
+    link(budR, budN, LIMITS.budget.min, LIMITS.budget.max, LIMITS.budget.def);
+
+    root.addEventListener('input', render);
+    root.addEventListener('change', render);
+
+    // "Lanjut isi form": isi form penawaran di halaman ini dengan hasil hitungan, lalu halaman menggulir ke form (ditangani motion.ts).
+    formBtn?.addEventListener('click', () => {
+      const jenis = document.querySelector<HTMLSelectElement>('#qf-jenis');
+      const estimasi = document.querySelector<HTMLInputElement>('#qf-estimasi');
+      const lokasi = document.querySelector<HTMLInputElement>('#qf-lokasi');
+      const pesan = document.querySelector<HTMLTextAreaElement>('#qf-pesan');
+      const type = checked('type');
+      const idx = type === 'commercial' ? 1 : type === 'new' ? 0 : 5; // pilihan "jenis proyek": rumah, ruko, renovasi
+      if (jenis && jenis.options[idx + 1]) jenis.selectedIndex = idx + 1;
+      if (estimasi) estimasi.value = `${summary.size} · ${summary.cost}`;
+      if (lokasi && !lokasi.value) lokasi.value = summary.region;
+      if (pesan) pesan.value = fill(S.formNote, summary);
+    });
+
+    render();
+
+    // Chip ringkasan (layar sempit): tampil saat kalkulator terlihat tetapi kartu hasil belum.
+    const chip = $<HTMLElement>('[data-calc-chip]');
+    const result = $<HTMLElement>('#calc-result');
+    if (chip && result && 'IntersectionObserver' in window) {
+      let inRoot = false;
+      let inResult = false;
+      const sync = () => chip.classList.toggle('is-on', inRoot && !inResult);
+      // Kalkulator dianggap "sedang dipakai" bila menutupi garis tengah layar; kartu hasil dianggap terlihat bila masuk layar sama sekali.
+      const ioRoot = new IntersectionObserver(
+        ([e]) => {
+          inRoot = e.isIntersecting;
+          sync();
+        },
+        { rootMargin: '-50% 0px -45% 0px' },
+      );
+      const ioResult = new IntersectionObserver(([e]) => {
+        inResult = e.isIntersecting;
+        sync();
+      });
+      ioRoot.observe(root);
+      ioResult.observe(result);
+      document.addEventListener(
+        'astro:before-swap',
+        () => {
+          ioRoot.disconnect();
+          ioResult.disconnect();
+        },
+        { once: true },
+      );
+    }
+  });
+</script>

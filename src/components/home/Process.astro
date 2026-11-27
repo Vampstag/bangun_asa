@@ -1,25 +1,20 @@
 ---
-import { getHome, type ProcessIcon } from '../../data/home';
+/**
+ * "Cara kami bekerja": judul menempel di kiri (sticky) sementara tujuh langkah bergulir di kanan. Tiap langkah muncul satu per satu
+ * saat di-scroll, dan langkah yang sedang dibaca menyala (ikon terisi, judul tegas) lewat motion.ts. Di layar sempit berupa daftar biasa.
+ * Dipakai di beranda dan halaman Layanan.
+ */
+import { getHome } from '../../data/home';
 import { langOf } from '../../data/site';
 import { t } from '../../i18n';
+import { ICONS } from '../../data/icons';
+import Model3D from './Model3D.astro';
 
 const lang = langOf(Astro.url.pathname);
 const { PROCESS } = getHome(lang);
 const stepLabel = t(lang).ui.step;
 
 const pad = (i: number) => String(i + 1).padStart(2, '0');
-
-// Ikon garis minimal (24x24, stroke mengikuti warna teks). Kunci sama dengan field `icon` di data.
-const ICONS: Record<ProcessIcon, string> = {
-  consult:
-    '<path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H11l-4 3.5V16h-.5A2.5 2.5 0 0 1 4 13.5z"/><path d="M8 9h8M8 12h5"/>',
-  plan: '<path d="M4 20V4l16 16z"/><path d="M8 16v-5l5 5z"/>',
-  contract: '<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="m9.5 14.5 2 2 3.5-4"/>',
-  build: '<path d="M5 16a7 7 0 0 1 14 0"/><path d="M3 16h18v3H3z"/><path d="M12 9v3"/>',
-  finish:
-    '<rect x="4" y="4" width="13" height="5" rx="1"/><path d="M17 6.5h2.5v5H12v3"/><rect x="10.5" y="14.5" width="3" height="6" rx="1"/>',
-  quality: '<path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/><path d="m9 12 2.2 2.2L15.5 10"/>',
-};
 ---
 
 <section class="sec proc" id="proses">
@@ -34,15 +29,18 @@ const ICONS: Record<ProcessIcon, string> = {
       <p class="proc__lead" data-reveal>
         {PROCESS.lead}
       </p>
-      <div class="proc__count" aria-hidden="true">
-        <b data-proc-cur>01</b>
-        <span>/ {pad(PROCESS.steps.length - 1)}</span>
+      <div class="proc__model">
+        <div class="proc__count" aria-hidden="true">
+          <b data-proc-cur>01</b>
+          <span>/ {pad(PROCESS.steps.length - 1)}</span>
+        </div>
+        <Model3D kind="process" caption={false} />
       </div>
     </div>
 
     <ol class="steps proc__steps">
       {PROCESS.steps.map((s, i) => (
-        <li data-step class:list={{ 'is-active': i === 0 }}>
+        <li data-step data-reveal class:list={{ 'is-active': i === 0 }}>
           <div class="step__top">
             <span class="step__icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" set:html={ICONS[s.icon]} />

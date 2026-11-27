@@ -3,8 +3,12 @@ import { Image } from 'astro:assets';
 import { getHome } from '../../data/home';
 import { href, langOf } from '../../data/site';
 import SectionHead from '../SectionHead.astro';
+import SwipeNav from '../SwipeNav.astro';
+import { t } from '../../i18n';
 
-const { WORK } = getHome(langOf(Astro.url.pathname));
+const lang = langOf(Astro.url.pathname);
+const { WORK } = getHome(lang);
+const ui = t(lang).ui;
 
 const here = Astro.url.pathname;
 const total = String(WORK.items.length).padStart(2, '0');
@@ -18,7 +22,7 @@ const total = String(WORK.items.length).padStart(2, '0');
   <!-- Desktop: slider menempel, scroll vertikal menggeser kartu ke samping. Mobile: swipe biasa. -->
   <div class="slider" data-slider>
     <div class="slider__stage">
-      <div class="slider__track" data-slider-track>
+      <div class="slider__track" id="geser-karya" data-slider-track>
         {WORK.items.map((p) => (
           <a class="card" href={href(p.href, here)}>
             <figure class="media">
@@ -52,5 +56,12 @@ const total = String(WORK.items.length).padStart(2, '0');
         </span>
       </div>
     </div>
+  </div>
+
+  <div class="wrap work__more">
+    <SwipeNav target="geser-karya" total={WORK.items.length + 1} />
+    <a class="arrow-link" href={href('/projects', here)}>
+      {ui.viewAllProjects} <i aria-hidden="true"></i>
+    </a>
   </div>
 </section>

@@ -5,17 +5,21 @@ import { ClientRouter } from 'astro:transitions';
 import { SITE, altLangUrl, langOf } from '../data/site';
 import { t } from '../i18n';
 import WhatsAppButton from '../components/WhatsAppButton.astro';
+import Analytics from '../components/Analytics.astro';
+import Preloader from '../components/Preloader.astro';
 
 interface Props {
   title?: string;
   description?: string;
+  /** true: jangan diindeks mesin pencari (mis. halaman yang belum siap tayang). */
+  noindex?: boolean;
 }
 
 // Bahasa halaman ditentukan dari URL: /en/... = Inggris, selain itu Indonesia.
 const lang = langOf(Astro.url.pathname);
 const d = t(lang);
 
-const { title, description = d.meta.description } = Astro.props;
+const { title, description = d.meta.description, noindex = false } = Astro.props;
 const fullTitle = title ? `${title} — ${SITE.brand}` : `${SITE.brand} — ${d.meta.tagline}`;
 
 const base = import.meta.env.BASE_URL;
@@ -63,11 +67,12 @@ const jsonLd = {
 <html lang={lang}>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="generator" content={Astro.generator} />
     <meta name="theme-color" content="#F7F6F3" />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
     <link rel="canonical" href={canonical} />
     <link rel="alternate" hreflang="id" href={idUrl} />
     <link rel="alternate" hreflang="en" href={enUrl} />
@@ -94,15 +99,65 @@ const jsonLd = {
       document.addEventListener('astro:after-swap', () => document.documentElement.classList.add('js'));
     </script>
 
+    <!-- Layar pembuka (Preloader.astro): diputuskan sebelum halaman digambar. Penuh di kunjungan pertama, singkat
+         sesudahnya. Ada pengaman 6 detik. -->
+    <script is:inline>
+      (() => {
+        if (window.__baIntro) return;
+        window.__baIntro = true;
+        let mode = '';
+        try {
+          const force = /[?&]intro(=|&|$)/.test(location.search);
+          const first = force || !sessionStorage.getItem('ba-intro');
+          const back = performance.getEntriesByType('navigation')[0]?.type === 'back_forward';
+          if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            if (first) mode = 'full';
+            else if (!location.hash && !back) mode = 'short';
+          }
+          if (mode) sessionStorage.setItem('ba-intro', '1');
+        } catch {
+          mode = '';
+        }
+        if (!mode) return;
+        document.documentElement.classList.add('is-loading');
+        if (mode === 'short') document.documentElement.classList.add('is-short');
+        setTimeout(() => {
+          if (!document.documentElement.classList.contains('is-loading')) return;
+          document.documentElement.classList.remove('is-loading');
+          document.dispatchEvent(new Event('ba:intro-done'));
+        }, 6000);
+      })();
+    </script>
+
     <ClientRouter />
+    <Analytics />
   </head>
   <body>
+    <Preloader />
     <slot />
     <WhatsAppButton />
+    <!-- Daftar CS aktif untuk sistem giliran (src/scripts/leads.ts). -->
+    <script
+      type="application/json"
+      id="ba-contact"
+      is:inline
+      set:html={JSON.stringify({
+        mode: SITE.contact.waMode,
+        cs: SITE.contact.phones.map((p) => ({ name: p.name, tel: p.tel })),
+      })}
+    />
+    <script>
+      import '../scripts/leads';
+    </script>
     <script>
       import { mountMotion, unmountMotion } from '../scripts/motion';
       // Satu kali didaftarkan; berjalan di muat awal dan di setiap transisi halaman.
-      document.addEventListener('astro:page-load', mountMotion);
+      // selama layar pembuka masih tampil, animasi halaman menunggu supaya terlihat saat layar memudar
+      document.addEventListener('astro:page-load', () => {
+        if (document.documentElement.classList.contains('is-loading'))
+          document.addEventListener('ba:intro-done', () => mountMotion(), { once: true });
+        else mountMotion();
+      });
       document.addEventListener('astro:before-swap', unmountMotion);
     </script>
   </body>

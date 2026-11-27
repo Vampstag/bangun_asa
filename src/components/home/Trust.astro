@@ -1,19 +1,16 @@
 ---
-import { Image, getImage } from 'astro:assets';
 import { getHome } from '../../data/home';
 import { langOf } from '../../data/site';
 import ClientMarquee from '../ClientMarquee.astro';
-import Lightbox from '../Lightbox.astro';
 
-const { TRUST } = getHome(langOf(Astro.url.pathname));
-
-// Versi ukuran penuh yang sudah dioptimasi, dipakai di lightbox (zoom butuh resolusi asli).
-const full = async (img: ImageMetadata) => (await getImage({ src: img, width: img.width })).src;
-const certs = await Promise.all(
-  TRUST.certs.map(async (c) => ({ ...c, full: await full(c.image), attachFull: await full(c.attachImage) })),
-);
+const lang = langOf(Astro.url.pathname);
+const { TRUST, STATS } = getHome(lang);
 ---
 
+<!--
+  Strip bukti singkat tepat di bawah hero: jenis bangunan yang dikerjakan + angka. Dokumen legal dan sertifikat
+  ada di halaman Tentang (Legal.astro): rinci soal perusahaan tidak untuk beranda.
+-->
 <section class="trust" aria-label={TRUST.aria}>
   <div class="wrap">
     <div class="split trust__head">
@@ -31,63 +28,16 @@ const certs = await Promise.all(
   </div>
 
   <div class="wrap">
-    <div class="split trust__legal">
-      <p class="label" data-reveal>
-        {TRUST.legalLabel}
-      </p>
-      <dl class="legal">
-        {TRUST.legal.map((l) => (
-          <div data-reveal>
-            <dt>{l.name}</dt>
-            <dd>{l.text}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-
-    <div class="split trust__certs">
-      <p class="label" data-reveal>
-        {TRUST.certsLabel}
-      </p>
-      <div>
-        <ul class="certs">
-          {certs.map((c) => (
-            <li class="cert" data-reveal>
-              <a class="cert__main" href={c.full} data-lightbox data-lb-alt={c.alt}>
-                <span class="cert__ico" aria-hidden="true">
-                  <svg viewBox="0 0 24 24">
-                    <path d="M7 3h7l4 4v14H7z" />
-                    <path d="M14 3v4h4" />
-                    <path d="M10 12h5M10 15.5h5" />
-                  </svg>
-                </span>
-                <span class="cert__txt">
-                  <b>{c.title}</b>
-                  <small>{c.kind}</small>
-                </span>
-                <span class="cert__zoom" aria-hidden="true">
-                  <svg viewBox="0 0 24 24">
-                    <circle cx="11" cy="11" r="6" />
-                    <path d="m20 20-4.2-4.2M11 8.5v5M8.5 11h5" />
-                  </svg>
-                </span>
-              </a>
-              <a class="cert__attach" href={c.attachFull} data-lightbox data-lb-alt={c.attachAlt}>
-                {c.attach} →
-              </a>
-              <!-- Pratinjau saat hover (hanya perangkat dengan kursor). Di layar sentuh langsung buka lightbox. -->
-              <span class="cert__pop" aria-hidden="true">
-                <Image src={c.image} alt="" widths={[260, 520]} sizes="260px" loading="lazy" />
-              </span>
-            </li>
-          ))}
-        </ul>
-        <p class="certs__cap" data-reveal>
-          {TRUST.certsCaption}
-        </p>
-      </div>
-    </div>
+    <dl class="stats" style={`--n:${STATS.length}`}>
+      {STATS.map((s) => (
+        <div data-reveal>
+          <dt>
+            {s.plain ? <span>{s.value}</span> : <span data-count={s.value}>{s.value}</span>}
+            <sup>{s.suffix}</sup>
+          </dt>
+          <dd>{s.text}</dd>
+        </div>
+      ))}
+    </dl>
   </div>
-
-  <Lightbox />
 </section>

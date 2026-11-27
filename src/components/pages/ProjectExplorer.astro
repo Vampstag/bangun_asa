@@ -1,0 +1,789 @@
+---
+/**
+ * Penjelajah proyek di halaman Proyek: kolom cari, filter yang tersembunyi sampai tombol Filter ditekan, jumlah hasil, dan
+ * pilihan tampilan Kisi atau Daftar (pilihan tampilan diingat di perangkat pengunjung). Pola dari referensi Asritektur.
+ * Data dari src/data/content/projects.json (dashboard). Tanpa JavaScript, semua proyek tampil sebagai kisi biasa.
+ */
+import { Image, getImage } from 'astro:assets';
+import { langOf, whatsappUrl } from '../../data/site';
+import { getPages, getProjects } from '../../data/pages';
+
+const lang = langOf(Astro.url.pathname);
+const f = getPages(lang).projects.filters;
+
+const items = await Promise.all(
+  getProjects(lang).map(async (p) => ({
+    ...p,
+    // versi besar untuk pratinjau penuh
+    full: (await getImage({ src: p.image, width: Math.min(p.image.width, 1600) })).src,
+  })),
+);
+const typeLabel = { new: f.new, renovation: f.renovation };
+const types = (['new', 'renovation'] as const).filter((k) => items.some((p) => p.type === k));
+const cities = [...new Set(items.map((p) => p.city).filter(Boolean))];
+const groups = [
+  { key: 'type', label: f.type, options: types.map((k) => ({ value: k as string, label: typeLabel[k] })) },
+  { key: 'city', label: f.city, options: cities.map((c) => ({ value: c, label: c })) },
+].filter((g) => g.options.length > 1);
+const countText = f.count.replace('{n}', String(items.length)).replace('{total}', String(items.length));
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+
+<section class="sec px" id="proyek" data-px data-view="grid">
+  <div class="wrap">
+    <h2 class="sr-only">{f.heading}</h2>
+
+    <div class="px__tools">
+      <div class="px__search">
+        <label class="sr-only" for="px-q">
+          {f.searchLabel}
+        </label>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="m20 20-4.3-4.3" />
+        </svg>
+        <input id="px-q" type="search" placeholder={f.search} autocomplete="off" enterkeyhint="search" data-px-q />
+        <button type="button" class="px__clear" aria-label={f.clearSearch} data-px-clear hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 6l12 12M18 6 6 18" />
+          </svg>
+        </button>
+      </div>
+      {groups.length > 0 && (
+        <button type="button" class="px__toggle" aria-expanded="false" aria-controls="px-panel" data-px-toggle>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16M7 12h10M10 17h4" />
+          </svg>
+          {f.button}
+          <b data-px-active hidden />
+        </button>
+      )}
+    </div>
+
+    {groups.length > 0 && (
+      <div class="px__panel" id="px-panel" inert data-px-panel>
+        <div class="px__panel-in">
+          <div class="px__groups">
+            {groups.map((g) => (
+              <fieldset>
+                <legend>{g.label}</legend>
+                <div class="px__chips">
+                  <button type="button" class="chip" data-filter={g.key} data-value="all" aria-pressed="true">
+                    {f.all}
+                  </button>
+                  {g.options.map((o) => (
+                    <button type="button" class="chip" data-filter={g.key} data-value={o.value} aria-pressed="false">
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+
+    <div class="px__bar">
+      <p class="px__count">
+        <span aria-live="polite" data-px-count data-tpl={f.count}>
+          {countText}
+        </span>
+        <button type="button" class="px__reset" data-px-reset hidden>
+          {f.reset}
+        </button>
+      </p>
+      <div class="px__views" role="group" aria-label={f.view}>
+        <button type="button" data-px-view="grid" aria-pressed="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" />
+          </svg>
+          {f.grid}
+        </button>
+        <button type="button" data-px-view="list" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 5h4v4H4zM4 15h4v4H4zM11 7h9M11 17h9" />
+          </svg>
+          {f.list}
+        </button>
+      </div>
+    </div>
+
+    <ul class="px__items" data-px-items>
+      {items.map((p, i) => (
+        <li
+          class="px__item"
+          data-px-item
+          data-type={p.type}
+          data-city={p.city}
+          data-search={[p.title, typeLabel[p.type], p.meta, p.city, p.alt].join(' ')}
+          style={`--i:${i % 6}`}
+        >
+          <a class="px__media" href={p.full} data-lightbox data-lb-alt={p.alt} aria-label={`${f.zoom}: ${p.title}`}>
+            <Image
+              src={p.image}
+              alt={p.alt}
+              widths={[320, 600, 900, 1200]}
+              sizes="(min-width: 1101px) 32vw, (min-width: 641px) 46vw, 92vw"
+              loading={i < 3 ? 'eager' : 'lazy'}
+            />
+          </a>
+          <div class="px__head">
+            <p class="px__no">
+              {f.number} {pad(i + 1)}
+            </p>
+            <h3 class="px__title">{p.title}</h3>
+          </div>
+          <dl class="px__meta">
+            <div>
+              <dt>{f.type}</dt>
+              <dd>{typeLabel[p.type]}</dd>
+            </div>
+            {p.city && (
+              <div>
+                <dt>{f.city}</dt>
+                <dd>{p.city}</dd>
+              </div>
+            )}
+          </dl>
+          <a class="px__ask" href="#kontak" data-prefill={p.prefill}>
+            {f.similar} <span aria-hidden="true">→</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <div class="px__empty" data-px-empty hidden>
+      <h3>{f.emptyTitle}</h3>
+      <p>{f.emptyText}</p>
+      <div>
+        <button type="button" class="chip" data-px-reset>
+          {f.reset}
+        </button>
+        <a class="arrow-link" href={whatsappUrl(lang)} target="_blank" rel="noopener">
+          {f.ask} <i aria-hidden="true" />
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Dipasang ulang setiap halaman dimuat (termasuk setelah transisi halaman Astro).
+  const KEY = 'ba-proyek-tampilan';
+  const plain = (s: string) => s.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '');
+
+  let io: IntersectionObserver | null = null;
+
+  document.addEventListener('astro:page-load', () => {
+    io?.disconnect();
+    const root = document.querySelector<HTMLElement>('[data-px]');
+    if (!root) return;
+    const $ = <E extends HTMLElement>(s: string) => root.querySelector<E>(s);
+    const items = Array.from(root.querySelectorAll<HTMLElement>('[data-px-item]'));
+    const list = $('[data-px-items]');
+    const input = $<HTMLInputElement>('[data-px-q]');
+    const clear = $('[data-px-clear]');
+    const toggle = $('[data-px-toggle]');
+    const panel = $('[data-px-panel]');
+    const badge = $('[data-px-active]');
+    const count = $('[data-px-count]');
+    const empty = $('[data-px-empty]');
+    const filters: Record<string, string> = { type: 'all', city: 'all' };
+    const index = new Map(items.map((li) => [li, plain(li.dataset.search ?? '')]));
+
+    // kartu muncul bertahap saat masuk layar
+    io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          e.target.classList.add('is-in');
+          io?.unobserve(e.target);
+        }
+      },
+      { rootMargin: '0px 0px -8% 0px' },
+    );
+    const replay = () => {
+      for (const li of items) {
+        li.classList.remove('is-in');
+        if (!li.hidden) io?.observe(li);
+      }
+    };
+
+    const apply = (animate = true) => {
+      const words = plain(input?.value ?? '')
+        .split(/\s+/)
+        .filter(Boolean);
+      let n = 0;
+      for (const li of items) {
+        const ok =
+          (filters.type === 'all' || li.dataset.type === filters.type) &&
+          (filters.city === 'all' || li.dataset.city === filters.city) &&
+          words.every((w) => index.get(li)?.includes(w));
+        li.hidden = !ok;
+        if (ok) li.style.setProperty('--i', String(n++ % 6));
+      }
+      if (count)
+        count.textContent = (count.dataset.tpl ?? '')
+          .replace('{n}', String(n))
+          .replace('{total}', String(items.length));
+      const active = Object.values(filters).filter((v) => v !== 'all').length;
+      if (badge) {
+        badge.textContent = String(active);
+        badge.hidden = active === 0;
+      }
+      if (clear) clear.hidden = !input?.value;
+      for (const r of root.querySelectorAll<HTMLElement>('.px__bar [data-px-reset]'))
+        r.hidden = active === 0 && words.length === 0;
+      if (empty) empty.hidden = n > 0;
+      for (const b of root.querySelectorAll<HTMLElement>('[data-filter]'))
+        b.setAttribute('aria-pressed', String(filters[b.dataset.filter ?? ''] === b.dataset.value));
+      if (animate) replay();
+    };
+
+    const setView = (view: string, animate = true) => {
+      root.dataset.view = view;
+      for (const b of root.querySelectorAll<HTMLElement>('[data-px-view]'))
+        b.setAttribute('aria-pressed', String(b.dataset.pxView === view));
+      if (animate) replay();
+    };
+
+    root.addEventListener('click', (e) => {
+      const t = e.target as Element;
+      const chip = t.closest<HTMLElement>('[data-filter]');
+      if (chip?.dataset.filter) {
+        filters[chip.dataset.filter] = chip.dataset.value ?? 'all';
+        apply();
+        return;
+      }
+      const view = t.closest<HTMLElement>('[data-px-view]')?.dataset.pxView;
+      if (view && view !== root.dataset.view) {
+        setView(view);
+        try {
+          localStorage.setItem(KEY, view);
+        } catch {
+          /* penyimpanan diblokir: pilihan berlaku selama halaman terbuka */
+        }
+        return;
+      }
+      if (t.closest('[data-px-toggle]') && toggle && panel) {
+        const open = toggle.getAttribute('aria-expanded') !== 'true';
+        toggle.setAttribute('aria-expanded', String(open));
+        panel.toggleAttribute('inert', !open);
+        panel.classList.toggle('is-open', open);
+        return;
+      }
+      if (t.closest('[data-px-clear]') && input) {
+        input.value = '';
+        input.focus();
+        apply();
+        return;
+      }
+      if (t.closest('[data-px-reset]')) {
+        filters.type = 'all';
+        filters.city = 'all';
+        if (input) input.value = '';
+        apply();
+      }
+    });
+    input?.addEventListener('input', () => apply());
+    // tombol "cari" di papan ketik HP menutup papan ketik supaya hasil terlihat
+    input?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
+    });
+
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem(KEY);
+    } catch {
+      saved = null;
+    }
+    if (saved === 'list' || saved === 'grid') setView(saved, false);
+    list?.classList.add('is-ready');
+    replay();
+  });
+  document.addEventListener('astro:before-swap', () => io?.disconnect());
+</script>
+
+<style is:global>
+  .px {
+    scroll-margin-top: 24px;
+  }
+  /* ---------- cari + tombol filter ---------- */
+  .px__tools {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .px__search {
+    position: relative;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+  .px__search > svg {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: var(--mute);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+  }
+  .px__search input {
+    flex: 1;
+    min-width: 0;
+    min-height: 60px;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: var(--fs-h3);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    outline: 0;
+  }
+  .px__search input::placeholder {
+    color: rgba(18, 18, 18, 0.46);
+  }
+  .px__search input::-webkit-search-cancel-button {
+    display: none;
+  }
+  .px__search:focus-within {
+    border-bottom-color: var(--red);
+    box-shadow: 0 1px 0 var(--red);
+  }
+  .px__clear {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+  }
+  .px__clear[hidden] {
+    display: none;
+  }
+  .px__clear svg,
+  .px__toggle svg,
+  .px__views svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .px__toggle {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    align-self: center;
+    min-height: 48px;
+    padding: 0 20px;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    transition:
+      background 0.35s var(--ease),
+      color 0.35s var(--ease),
+      border-color 0.35s var(--ease);
+  }
+  .px__toggle:hover {
+    border-color: var(--ink);
+  }
+  .px__toggle[aria-expanded='true'] {
+    border-color: var(--dark);
+    background: var(--dark);
+    color: var(--bg);
+  }
+  .px__toggle b {
+    display: grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 99px;
+    background: var(--red);
+    font-size: 0.75rem;
+    color: #fff;
+  }
+  .px__toggle b[hidden] {
+    display: none;
+  }
+
+  /* ---------- panel filter: tersembunyi sampai diminta ---------- */
+  .px__panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows 0.55s var(--ease),
+      opacity 0.4s var(--ease);
+  }
+  .px__panel.is-open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  .px__panel-in {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .px__groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px 56px;
+    padding: 28px 0 4px;
+  }
+  .px__groups fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .px__groups legend {
+    margin-bottom: 12px;
+    padding: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--mute);
+  }
+  .px__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* ---------- jumlah hasil + pilihan tampilan ---------- */
+  .px__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 24px;
+    margin-block: 24px var(--head-gap);
+  }
+  .px__count {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 18px;
+    font-size: 0.9375rem;
+    color: var(--mute);
+  }
+  .px__reset {
+    min-height: 44px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 5px;
+  }
+  .px__reset[hidden] {
+    display: none;
+  }
+  .px__views {
+    display: flex;
+    gap: 28px;
+  }
+  .px__views button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--mute);
+    transition: color 0.3s var(--ease);
+  }
+  .px__views button::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 6px;
+    left: 0;
+    height: 2px;
+    background: var(--red);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s var(--ease);
+  }
+  .px__views button:hover,
+  .px__views button[aria-pressed='true'] {
+    color: var(--ink);
+  }
+  .px__views button[aria-pressed='true']::after {
+    transform: scaleX(1);
+  }
+
+  /* ---------- kisi ---------- */
+  .px__items {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--head-gap) var(--gap-card);
+  }
+  .px__item {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  /* harus lebih kuat daripada aturan tampilan daftar, supaya yang tersaring benar-benar hilang */
+  .px .px__items > .px__item[hidden] {
+    display: none;
+  }
+  .px__media {
+    display: block;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--r-card);
+    background: var(--bg-2);
+    cursor: zoom-in;
+  }
+  .px__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 1.2s var(--ease);
+  }
+  .px__media:hover img {
+    transform: scale(1.04);
+  }
+  .px__head {
+    padding-top: 18px;
+  }
+  .px__no {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .px__title {
+    margin-top: 6px;
+    font-size: var(--fs-h4);
+    font-weight: 500;
+  }
+  .px__meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  .px__meta dt {
+    margin-bottom: 4px;
+    font-size: 0.8125rem;
+    color: var(--mute);
+  }
+  .px__meta dd {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+  .px__ask {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 8px;
+    min-height: 44px;
+    margin-top: 8px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+  .px__ask span {
+    transition: translate 0.4s var(--ease);
+  }
+  .px__ask:hover span {
+    translate: 5px 0;
+  }
+  .px__ask:hover {
+    color: var(--red);
+  }
+
+  /* ---------- daftar ---------- */
+  @media (min-width: 901px) {
+    .px[data-view='list'] .px__items {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+    .px[data-view='list'] .px__item {
+      display: grid;
+      grid-template-columns: minmax(200px, 280px) minmax(0, 1.2fr) minmax(0, 1fr) auto;
+      align-items: center;
+      gap: clamp(20px, 3vw, 48px);
+      padding-block: 24px;
+      border-top: 1px solid var(--line);
+    }
+    .px[data-view='list'] .px__item:last-child {
+      border-bottom: 1px solid var(--line);
+    }
+    .px[data-view='list'] .px__media {
+      aspect-ratio: 3 / 2;
+    }
+    .px[data-view='list'] .px__head {
+      padding-top: 0;
+    }
+    .px[data-view='list'] .px__title {
+      font-size: var(--fs-h3);
+      line-height: 1.22;
+    }
+    .px[data-view='list'] .px__meta {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+    }
+    .px[data-view='list'] .px__ask {
+      align-self: center;
+      justify-self: end;
+      margin-top: 0;
+      white-space: nowrap;
+    }
+  }
+
+  /* ---------- kosong ---------- */
+  .px__empty {
+    display: grid;
+    justify-items: start;
+    gap: 16px;
+    padding: 40px 0;
+    border-block: 1px solid var(--line);
+  }
+  .px__empty[hidden] {
+    display: none;
+  }
+  .px__empty h3 {
+    font-size: var(--fs-h3);
+    font-weight: 500;
+    line-height: 1.22;
+  }
+  .px__empty p {
+    max-width: 52ch;
+    color: var(--mute);
+  }
+  .px__empty div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 28px;
+  }
+
+  /* masuk bertahap (hanya bila JavaScript berjalan dan gerak tidak dikurangi) */
+  @media (prefers-reduced-motion: no-preference) {
+    .js .px__items.is-ready .px__item {
+      opacity: 0;
+    }
+    .js .px__items.is-ready .px__item.is-in {
+      opacity: 1;
+      animation: px-in 0.75s var(--ease) calc(var(--i) * 70ms) backwards;
+    }
+  }
+  @keyframes px-in {
+    from {
+      opacity: 0;
+      translate: 0 28px;
+    }
+  }
+
+  @media (max-width: 1100px) {
+    .px__items {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 900px) {
+    .px__tools {
+      flex-direction: column;
+      gap: 12px;
+    }
+    .px__search input {
+      min-height: 52px;
+      font-size: 1.0625rem;
+    }
+    .px__toggle {
+      justify-content: center;
+      align-self: stretch;
+    }
+    .px__groups {
+      flex-direction: column;
+      gap: 20px;
+      padding-top: 20px;
+    }
+    .px__bar {
+      margin-block: 12px 28px;
+    }
+    /* HP: daftar ringkas, foto kecil di kiri */
+    .px[data-view='list'] .px__items {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+    .px[data-view='list'] .px__item {
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      grid-template-areas:
+        'media head'
+        'media meta'
+        'media ask';
+      grid-template-rows: auto auto 1fr;
+      column-gap: 16px;
+      padding-block: 18px;
+      border-top: 1px solid var(--line);
+    }
+    .px[data-view='list'] .px__item:last-child {
+      border-bottom: 1px solid var(--line);
+    }
+    .px[data-view='list'] .px__media {
+      grid-area: media;
+      align-self: start;
+      aspect-ratio: 1;
+    }
+    .px[data-view='list'] .px__head {
+      grid-area: head;
+      padding-top: 0;
+    }
+    .px[data-view='list'] .px__meta {
+      grid-area: meta;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0 8px;
+      margin-top: 6px;
+      padding-top: 0;
+      border-top: 0;
+      color: var(--mute);
+    }
+    .px[data-view='list'] .px__meta dt {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    .px[data-view='list'] .px__meta dd {
+      font-size: 0.9375rem;
+      font-weight: 400;
+    }
+    .px[data-view='list'] .px__meta div {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .px[data-view='list'] .px__meta div + div::before {
+      content: '·';
+    }
+    .px[data-view='list'] .px__ask {
+      grid-area: ask;
+      margin-top: 2px;
+      font-size: 0.875rem;
+    }
+  }
+  @media (max-width: 640px) {
+    .px__items {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

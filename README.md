@@ -121,7 +121,7 @@ Audit penuh dengan axe-core menemukan dan memperbaiki: ARIA tab yang salah, `ari
 
 ## Yang masih perlu diganti atau dilengkapi
 - **Hero:** video latar sekarang klip stok Mixkit (lihat `public/video/BACA-SAYA.txt`). Ganti dengan footage proyek asli.
-- **Foto stok:** kartu B2B dan layanan "Bangunan Komersial" memakai foto stok karena belum ada foto proyek komersial.
+- **Foto stok:** layanan "Bangunan Komersial" memakai foto stok karena belum ada foto proyek komersial.
 - **Karya:** judul proyek bersifat deskriptif. Isi nama, lokasi, dan tahun proyek di `WORK` (`src/data/home.ts`).
 - **Logo klien:** marquee sekarang menampilkan jenis bangunan. Untuk logo klien asli, isi field `logo` pada `TRUST.items`.
 - **Testimoni:** isinya di `src/data/content/testimonials.json` (diedit lewat dashboard `/admin/`, atau langsung di file). Tiap testimoni: nama, teks Indonesia (wajib), teks Inggris (opsional; kosong = versi Inggris menampilkan teks asli dengan catatan), foto (opsional; tanpa foto dipakai avatar inisial). Yang tampil hanya foto/inisial, nama, dan isi. Tampilannya "adegan" sticky (kartu naik melewati judul, `motion.ts` + `.quote__*` di CSS); maksimal `FEATURED_MAX` (8, di `src/data/testimonials.ts`) testimoni teratas dipakai. Tanpa JS atau dengan reduced-motion jadi daftar kartu biasa. Sekarang 6 testimoni (5 dari ulasan Google Maps yang disalin pemilik, 1 dari situs lama; ejaan dirapikan, terjemahan Inggris dibuat dari teks Indonesia). Entri lain di situs lama ("apartement 20 lantai", founder, foto orang) tampak seperti data uji dan belum dipakai.

@@ -7,7 +7,7 @@ import { t } from '../i18n';
  * Pakai <dialog> bawaan browser: fokus terkunci, Esc menutup, latar belakang tidak bisa diklik.
  *
  * Cara pakai: beri atribut `data-lightbox` pada tautan <a href="gambar-besar"> dan (opsional) `data-lb-alt`.
- * Semua tautan bertanda itu di satu halaman menjadi satu galeri yang bisa digeser.
+ * Semua tautan bertanda itu yang sedang tampil di satu halaman menjadi satu galeri yang bisa digeser.
  * Tanpa JavaScript, tautan tetap membuka gambar biasa.
  *
  * Zoom: klik gambar (zoom ke titik klik), roda mouse / cubit, tombol +/−, tombol 0 untuk reset.
@@ -74,7 +74,9 @@ const l = t(langOf(Astro.url.pathname)).lightbox;
     const cap = dlg.querySelector<HTMLElement>('.lb__cap')!;
     const count = dlg.querySelector<HTMLElement>('.lb__count')!;
     const zoomVal = dlg.querySelector<HTMLElement>('.lb__zoomval')!;
-    const multi = links.length > 1;
+    // galeri = foto yang sedang tampil saat dibuka (yang disembunyikan filter tidak ikut)
+    let set = links;
+    const multi = () => set.length > 1;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const ac = new AbortController();
     const sig = { signal: ac.signal };
@@ -86,8 +88,6 @@ const l = t(langOf(Astro.url.pathname)).lightbox;
       document.documentElement.classList.toggle('lb-open', on);
       document.dispatchEvent(new CustomEvent('ba:scroll-lock', { detail: on }));
     };
-
-    dlg.classList.toggle('is-single', !multi);
 
     /* ---------- zoom / pan ---------- */
     const MAX = 4;
@@ -203,7 +203,7 @@ const l = t(langOf(Astro.url.pathname)).lightbox;
       ptrs.delete(e.pointerId);
       view.classList.remove('is-dragging');
       // Swipe left/right to change image (touch only, and only when not zoomed).
-      if (wasSingle && multi && drag.touch && scale === 1) {
+      if (wasSingle && multi() && drag.touch && scale === 1) {
         const dx = e.clientX - drag.sx;
         if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(e.clientY - drag.sy)) show(index + (dx < 0 ? 1 : -1));
       }
@@ -227,11 +227,11 @@ const l = t(langOf(Astro.url.pathname)).lightbox;
 
     /* ---------- gallery ---------- */
     const show = (n: number) => {
-      index = (n + links.length) % links.length;
-      const a = links[index];
+      index = (n + set.length) % set.length;
+      const a = set[index];
       const alt = a.dataset.lbAlt ?? '';
       cap.textContent = alt;
-      count.textContent = multi ? `${index + 1} / ${links.length}` : '';
+      count.textContent = multi() ? `${index + 1} / ${set.length}` : '';
       resetZoom(false);
       // Load first, then swap, so the old image never flashes empty.
       img.classList.add('is-swap');
@@ -244,8 +244,10 @@ const l = t(langOf(Astro.url.pathname)).lightbox;
       next.src = a.href;
     };
 
-    const open = (n: number) => {
-      show(n);
+    const open = (a: HTMLAnchorElement) => {
+      set = links.filter((l) => l === a || !l.closest('[hidden]'));
+      dlg.classList.toggle('is-single', !multi());
+      show(set.indexOf(a));
       dlg.showModal();
       lockScroll(true);
       requestAnimationFrame(() => dlg.classList.add('is-open'));
@@ -265,11 +267,11 @@ const l = t(langOf(Astro.url.pathname)).lightbox;
       );
     };
 
-    links.forEach((a, k) =>
+    links.forEach((a) =>
       a.addEventListener('click', (e) => {
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // allow "open in new tab" if the user wants it
         e.preventDefault();
-        open(k);
+        open(a);
       }),
     );
 
@@ -295,8 +297,8 @@ const l = t(langOf(Astro.url.pathname)).lightbox;
     });
 
     dlg.addEventListener('keydown', (e) => {
-      if (multi && e.key === 'ArrowLeft') show(index - 1);
-      if (multi && e.key === 'ArrowRight') show(index + 1);
+      if (multi() && e.key === 'ArrowLeft') show(index - 1);
+      if (multi() && e.key === 'ArrowRight') show(index + 1);
       if (e.key === '+' || e.key === '=') zoomBy(1.5);
       if (e.key === '-' || e.key === '_') zoomBy(1 / 1.5);
       if (e.key === '0') resetZoom();

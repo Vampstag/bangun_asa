@@ -9,6 +9,7 @@
 import type { Lang } from '../i18n';
 import { t } from '../i18n';
 import settings from './content/settings.json';
+import { CALC_ENABLED } from './calculator';
 
 /**
  * Nomor yang diketik manusia ("0851 3851 6234") diubah ke format internasional ("+6285138516234")
@@ -25,12 +26,22 @@ export function toTel(display: string): string {
 interface RawPhone {
   name?: string;
   display?: string;
+  /** false = sedang tidak menerima chat (cuti, dll.): tidak tampil dan tidak dapat giliran */
+  active?: boolean;
 }
 
 /** Hanya nomor yang lengkap (nama dan angka) yang dipakai; entri setengah jadi dari CMS dilewati. */
-const phones = (settings.phones as RawPhone[])
-  .filter((p) => p.name?.trim() && p.display?.trim())
-  .map((p) => ({ name: p.name!.trim(), display: p.display!.trim(), tel: toTel(p.display!) }));
+const complete = (settings.phones as RawPhone[]).filter((p) => p.name?.trim() && p.display?.trim());
+const active = complete.filter((p) => p.active !== false);
+// kalau semua dimatikan, nomor pertama tetap dipakai supaya situs tidak pernah tanpa kontak
+const phones = (active.length ? active : complete.slice(0, 1)).map((p) => ({
+  name: p.name!.trim(),
+  display: p.display!.trim(),
+  tel: toTel(p.display!),
+}));
+
+/** 'giliran' = sekali ketuk, pengunjung dibagi rata ke CS aktif. 'pilih' = pengunjung memilih sendiri. */
+const waMode: 'giliran' | 'pilih' = (settings as { wa_mode?: string }).wa_mode === 'pilih' ? 'pilih' : 'giliran';
 
 export const SITE = {
   brand: 'Bangun Asa Konstruksi',
@@ -40,6 +51,7 @@ export const SITE = {
     address: settings.address.trim(),
     /** Nomor customer service. Nomor pertama jadi nomor WhatsApp utama (tombol, form, tautan). */
     phones,
+    waMode,
     /** Nomor WhatsApp utama: tanpa "+" dan tanpa spasi (dari nomor CS pertama). */
     whatsapp: (phones[0]?.tel ?? '').replace('+', ''),
     /**
@@ -108,4 +120,9 @@ export function isCurrent(to: string, current: string): boolean {
 /** Tautan WhatsApp dengan pesan terisi (default: pesan sapaan sesuai bahasa). */
 export function whatsappUrl(lang: Lang, text?: string, number: string = SITE.contact.whatsapp): string {
   return `https://wa.me/${number.replace(/\D/g, '')}?text=${encodeURIComponent(text ?? t(lang).whatsappText)}`;
+}
+
+/** Item menu yang boleh tampil. Kalkulator disembunyikan di produksi sampai tarifnya dikonfirmasi (lihat calculator.json). */
+export function visibleNav<T extends { href: string }>(nav: T[]): T[] {
+  return nav.filter((n) => CALC_ENABLED || n.href !== '/calculator');
 }

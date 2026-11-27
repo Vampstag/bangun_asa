@@ -1,52 +1,63 @@
 ---
-import { Image } from 'astro:assets';
 import { getHome } from '../../data/home';
 import { href, langOf } from '../../data/site';
-import SectionHead from '../SectionHead.astro';
 
 const { AUDIENCE } = getHome(langOf(Astro.url.pathname));
 
 const here = Astro.url.pathname;
+const mark = `${import.meta.env.BASE_URL}favicon.png`;
 ---
 
-<section class="sec" id="untuk-siapa">
+<section class="sec aud-sec" id="untuk-siapa" aria-label={AUDIENCE.aria}>
   <div class="wrap">
-    <SectionHead label={AUDIENCE.label} title={AUDIENCE.title} />
-
+    <!--
+      Dua kartu sama tinggi: judul, untuk siapa, penjelasan, lalu ajakan di dasar kartu. Badge B2B/B2C dan paragraf penjelasnya baru muncul saat hover/fokus.
+      Logo merek duduk di sambungan kedua kartu (desktop); di layar sempit kartu ditumpuk dan logo disembunyikan.
+    -->
     <div class="aud">
-      {AUDIENCE.cards.map((c) => (
-        <article class:list={['aud__card', `aud__card--${c.tone}`]} data-reveal>
-          <p class="aud__tag">
-            <b>{c.tag}</b>
-            <span>{c.who}</span>
-          </p>
-
-          <figure class="media aud__img">
-            <Image
-              src={c.image}
-              alt={c.alt}
-              widths={[700, 1100, 1500]}
-              sizes="(min-width: 901px) 46vw, 100vw"
-              loading="lazy"
-            />
-          </figure>
-
-          <h3 class="aud__title">{c.title}</h3>
-          <p class="aud__lead">{c.text}</p>
-
-          <ul class="aud__list">
-            {c.points.map((p) => (
-              <li>{p}</li>
-            ))}
-          </ul>
-
-          <div class="aud__foot">
-            <a class="arrow-link" href={href(c.href, here)}>
-              {c.cta} <i aria-hidden="true"></i>
-            </a>
+      {AUDIENCE.cards.map((c, i) => (
+        <a
+          class:list={['aud__card', `aud__card--${c.tone}`]}
+          href={href(c.href, here)}
+          data-prefill={c.prefill}
+          data-reveal={i === 0 ? 'left' : 'right'}
+        >
+          <h3 class="aud__title">
+            <span class="aud__tag">{c.tag}</span>
+            {c.title}
+          </h3>
+          <p class="aud__who">{c.who}</p>
+          <div class="aud__more">
+            <div class="aud__more-in">
+              <p class="aud__lead">{c.text}</p>
+            </div>
           </div>
-        </article>
+          <span class="aud__cta">
+            <span>{c.cta}</span>
+            <i class="aud__go" aria-hidden="true" />
+          </span>
+        </a>
       ))}
+      <div class="aud__hub" aria-hidden="true" data-reveal>
+        <span class="aud__mark">
+          <img src={mark} alt="" width="32" height="32" loading="lazy" />
+        </span>
+      </div>
     </div>
   </div>
 </section>
+
+<script>
+  // Cahaya lembut mengikuti kursor di dalam kartu (hanya perangkat dengan hover). Pakai delegasi supaya tetap hidup setelah transisi halaman.
+  document.addEventListener(
+    'pointermove',
+    (e) => {
+      const card = (e.target as Element | null)?.closest?.<HTMLElement>('.aud__card');
+      if (!card) return;
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', `${e.clientX - r.left}px`);
+      card.style.setProperty('--my', `${e.clientY - r.top}px`);
+    },
+    { passive: true },
+  );
+</script>

@@ -91,6 +91,61 @@ Alternatif untuk uji lokal tanpa Worker: jalankan `npm run dev`, buka `http://lo
 - **Menambah isi yang bisa diedit** (mis. artikel/blog): tambah koleksi di `public/admin/config.yml`, buat file datanya, dan baca di kode seperti `src/data/testimonials.ts`.
 - Bagian lain situs (teks section, layanan, FAQ, tim) masih ada di `src/i18n/id.ts` dan `en.ts`. Itu belum lewat dashboard; ubah lewat developer, atau pindahkan ke dashboard secara bertahap.
 
+## 6. Media sosial: video TikTok otomatis
+
+Section "Media sosial" (di bagian bawah beranda, sebelum kontak, dan di halaman Tentang) menampilkan kartu profil TikTok (nama, jumlah
+pengikut) dan 4 video **terbaru** (diurutkan dari ID video; video yang disematkan di profil tidak diberi tempat khusus). Yang tampil hanya
+thumbnail dan tombol putar: tanpa caption, penanda sematan, jumlah tayang, atau suka.
+
+**Alurnya, tanpa campur tangan.** Workflow `.github/workflows/sync-tiktok.yml` berjalan setiap 6 jam dan menjalankan `tools/sync-tiktok.cjs`:
+
+1. Membuka profil publik akun TikTok yang ada di `src/data/content/settings.json` (field `tiktok`) di Chrome tanpa tampilan.
+2. Membandingkan daftar video dengan yang sudah tersimpan. **Tidak ada video baru: tidak ada perubahan, tidak ada commit, tidak ada deploy.**
+3. Ada video baru: thumbnail diunduh dan dioptimasi ke `src/assets/social/` (tautan asli TikTok kedaluwarsa), data ditulis ke
+   `src/data/content/tiktok.json`, di-commit otomatis, lalu situs di-deploy ulang. Video baru tampil sekitar 5 menit setelah workflow berikutnya jalan.
+
+Jumlah pengikut diperbarui bersama video baru, atau paling lambat tiap 30 hari, supaya tidak ada deploy setiap hari hanya karena angkanya bergeser.
+
+Video **tidak dimuat sampai diklik**: pengunjung melihat thumbnail milik kita, dan player resmi TikTok baru dimuat saat diklik. Halaman ringan,
+dan tidak ada skrip TikTok sebelum pengunjung memilih memutar.
+
+**Kenapa lewat skrip.** TikTok tidak punya API publik gratis untuk daftar video sebuah akun; halaman profilnya hanya terisi di browser
+sungguhan dan tidak bisa dibaca langsung dari browser pengunjung (CORS dan anti-bot). Display API resmi butuh aplikasi developer yang
+disetujui TikTok dan token login pemilik akun yang kedaluwarsa.
+
+**Yang perlu diperhatikan.**
+
+- Workflow terjadwal hanya berjalan setelah file ini ada di cabang `main` GitHub. Uji pertama: tab **Actions → Sinkron video TikTok → Run workflow**.
+- Repo yang lama tanpa aktivitas bisa membuat GitHub menonaktifkan workflow terjadwal; kalau itu terjadi, aktifkan lagi di tab Actions.
+- TikTok bisa saja memblokir alamat IP server GitHub. Kalau begitu, job berwarna merah dan **situs tidak berubah** (data lama tetap tampil).
+  Cadangannya: jalankan dari komputer sendiri dengan `tools/sync-tiktok-local.cmd` (sync, commit, push bila ada video baru), dijadwalkan lewat
+  Task Scheduler, mis. `schtasks /Create /SC DAILY /TN "Sinkron TikTok Bangun Asa" /TR "\"D:\jalur\ke\bangun-asa-web\tools\sync-tiktok-local.cmd\"" /ST 09:00`
+  (komputer harus menyala dan git sudah punya akses push).
+- Skrip membaca struktur halaman TikTok. Kalau TikTok mengubahnya, skrip gagal dengan pesan jelas tanpa merusak situs; selector di
+  `extractInPage` perlu diperbarui.
+- Manual: `npm run sync:tiktok` (tambah `-- --dry` untuk hanya melihat hasil, `-- --force` untuk menulis ulang walau tidak ada video baru, `-- --from-file=data.json` untuk uji tanpa browser dan internet).
+  Skrip hanya membaca data publik, tanpa kunci atau akun.
+
+## 7. Kalkulator estimasi biaya
+
+Halaman `/calculator` (`/en/calculator`) berisi kalkulator interaktif tanpa server: jenis pekerjaan, luas bangunan atau anggaran, jumlah lantai,
+tingkat finishing, lokasi (per kabupaten/kota), dan untuk renovasi sebagian, bagian yang dikerjakan. Hasilnya **kisaran biaya** dan gambaran
+pembagian biaya; **durasi hanya untuk rumah baru**; **ruko dan bangunan komersial sengaja tidak diberi angka** (diarahkan ke WhatsApp).
+Hasil bisa dikirim ke WhatsApp atau mengisi form penawaran. Di bawah kalkulator ada bagian "Dari mana angka ini?". Rumus ada di
+`src/data/calculator.ts`, angkanya di `src/data/content/calculator.json` (semua bisa diedit dari dashboard), dan sumber setiap angka
+di [DASAR-KALKULATOR.md](DASAR-KALKULATOR.md).
+
+**Tarif WAJIB dikonfirmasi sebelum tayang.** Angka awal adalah hasil riset harga pasar, bukan tarif Bangun Asa. Karena itu selama
+`confirmed` bernilai `false`:
+
+- di build produksi, kalkulator tidak muncul di menu, footer, navigasi samping, dan beranda, tidak masuk sitemap, dan halamannya ber-`noindex`;
+- halamannya tetap bisa dibuka lewat alamat langsung dan menampilkan catatan bahwa tarifnya belum dikonfirmasi;
+- saat pengembangan (`npm run dev`) kalkulator tetap tampil supaya bisa dicoba.
+
+Langkah menayangkan: tim Bangun Asa mengikuti bagian kalibrasi di DASAR-KALKULATOR.md, mengisi tarif di dashboard, lalu mencentang
+**Tarif sudah dikonfirmasi tim**. Setelah deploy, kalkulator otomatis muncul di menu dan beranda, dan penjelasan "harga dasar" di
+halaman berganti menjadi tarif yang ditetapkan tim. Teks spesifikasi tiap finishing ada di `src/i18n` (`calculator.basis.spec`).
+
 ## Keamanan
 
 - Jangan menaruh kredensial (FTP, cPanel, database, OAuth secret) di repo, di `config.yml`, atau di chat. Hanya di GitHub Secrets / secret Worker.

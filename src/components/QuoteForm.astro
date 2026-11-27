@@ -24,7 +24,7 @@ const msg = JSON.stringify({ ...f.message, intro: f.message.intro.replace('{bran
     <div class="field">
       <label for="qf-jenis">{f.type}</label>
       <select id="qf-jenis" name="jenis" required>
-        <option value="" disabled selected>
+        <option value="" disabled selected hidden>
           {f.choose}
         </option>
         {f.projectTypes.map((p) => (
@@ -33,18 +33,24 @@ const msg = JSON.stringify({ ...f.message, intro: f.message.intro.replace('{bran
       </select>
     </div>
     <div class="field">
-      <label for="qf-estimasi">{f.estimate}</label>
+      <label for="qf-estimasi">
+        {f.estimate} <span class="field__opt">{f.optional}</span>
+      </label>
       <input id="qf-estimasi" name="estimasi" type="text" placeholder={f.estimatePlaceholder} />
     </div>
   </div>
 
   <div class="field">
-    <label for="qf-lokasi">{f.location}</label>
+    <label for="qf-lokasi">
+      {f.location} <span class="field__opt">{f.optional}</span>
+    </label>
     <input id="qf-lokasi" name="lokasi" type="text" placeholder={f.locationPlaceholder} />
   </div>
 
   <div class="field">
-    <label for="qf-pesan">{f.details}</label>
+    <label for="qf-pesan">
+      {f.details} <span class="field__opt">{f.optional}</span>
+    </label>
     <textarea id="qf-pesan" name="pesan" rows="3"></textarea>
   </div>
 
@@ -55,6 +61,18 @@ const msg = JSON.stringify({ ...f.message, intro: f.message.intro.replace('{bran
 </form>
 
 <script>
+  import { assignedCs, track } from '../scripts/leads';
+
+  // Kartu dengan data-prefill (Audience) mengisi "jenis proyek" di form sebelum halaman bergulir ke sana.
+  // Skrip modul ini berjalan sekali, jadi pendengar klik tidak menumpuk setelah transisi halaman.
+  document.addEventListener('click', (e) => {
+    const a = (e.target as Element).closest<HTMLElement>('[data-prefill]');
+    const select = document.querySelector<HTMLSelectElement>('#qf-jenis');
+    const i = Number(a?.dataset.prefill);
+    // +1: opsi pertama adalah placeholder "pilih jenis proyek".
+    if (select && Number.isInteger(i) && select.options[i + 1]) select.selectedIndex = i + 1;
+  });
+
   // Dipasang ulang setiap halaman dimuat (termasuk setelah transisi halaman Astro).
   document.addEventListener('astro:page-load', () => {
     const form = document.querySelector<HTMLFormElement>('[data-qform]');
@@ -72,7 +90,10 @@ const msg = JSON.stringify({ ...f.message, intro: f.message.intro.replace('{bran
         val('pesan') && `${m.details}: ${val('pesan')}`,
       ].filter(Boolean);
       const text = `${m.intro}\n\n${details.join('\n')}`;
-      window.open(`https://wa.me/${form.dataset.wa}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+      const number = assignedCs()?.tel.replace(/\D/g, '') || form.dataset.wa;
+      // hanya jenis proyek yang ikut dicatat; nama dan lokasi tidak dikirim ke layanan pelacakan
+      track('form_submit', { placement: 'form', project: val('jenis') });
+      window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
     });
   });
 </script>

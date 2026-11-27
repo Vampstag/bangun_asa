@@ -2,23 +2,29 @@
 import { Image } from 'astro:assets';
 import { getHome } from '../../data/home';
 import { href, langOf } from '../../data/site';
-import SectionHead from '../SectionHead.astro';
 
 const { SERVICES } = getHome(langOf(Astro.url.pathname));
 
 const here = Astro.url.pathname;
 const pad = (i: number) => String(i + 1).padStart(2, '0');
+// urutan sama dengan daftar layanan (dan dengan halaman Layanan)
+const models = ['new', 'renovation', 'total', 'commercial'];
 ---
 
-<section class="svcs" id="layanan">
-  <div class="wrap sec" style="padding-bottom: clamp(48px, 6vw, 96px)">
-    <SectionHead label={SERVICES.label} title={SERVICES.title} />
-  </div>
-
+<section class="svcs" id="layanan" data-svc3d>
   <!-- Desktop: panggung menempel, scroll menggeser tab aktif. Mobile: daftar terbuka biasa. -->
   <div class="tabs" data-tabs style={`--n:${SERVICES.items.length}`}>
     <div class="tabs__stage">
       <div class="wrap tabs__grid">
+        <!-- Judul ada di dalam panggung sticky, satu kolom dengan keempat layanannya. -->
+        <header class="tabs__head">
+          <p class="label" data-reveal>
+            {SERVICES.label}
+          </p>
+          <h2 class="h2" data-reveal>
+            {SERVICES.title}
+          </h2>
+        </header>
         <!--
           Pola akordeon (daftar + tombol + aria-expanded), bukan role="tab":
           pada mobile semua isi terbuka, pada desktop scroll yang membuka satu per satu.
@@ -40,7 +46,7 @@ const pad = (i: number) => String(i + 1).padStart(2, '0');
                     {SERVICES.cta} <i aria-hidden="true"></i>
                   </a>
                   <figure class="media tab__m">
-                    <Image src={s.image} alt="" widths={[600, 900]} sizes="100vw" loading="lazy" />
+                    <Image src={s.image} alt="" widths={[600, 900]} sizes="100vw" loading="lazy" data-fit={s.fit} />
                   </figure>
                 </div>
               </div>
@@ -51,7 +57,12 @@ const pad = (i: number) => String(i + 1).padStart(2, '0');
           ))}
         </ul>
 
+        {/* Model 3D layanan yang aktif: satu kanvas untuk keempatnya. Di HP dan tablet kanvas ini dipindahkan ke dalam
+            akordeon yang sedang terbuka (src/scripts/models/switcher.ts). Foto di bawahnya hanya cadangan tanpa WebGL. */}
         <div class="tabs__visual" aria-hidden="true">
+          <div class="svc3d m3d" data-svc3d-host data-kinds={models.join(',')}>
+            <canvas />
+          </div>
           <figure class="media">
             {SERVICES.items.map((s, i) => (
               <Image
@@ -62,6 +73,7 @@ const pad = (i: number) => String(i + 1).padStart(2, '0');
                 loading="lazy"
                 class:list={{ 'is-active': i === 0 }}
                 data-tab-img
+                data-fit={s.fit}
               />
             ))}
           </figure>
@@ -70,3 +82,7 @@ const pad = (i: number) => String(i + 1).padStart(2, '0');
     </div>
   </div>
 </section>
+
+<script>
+  import '../../scripts/models/switcher';
+</script>

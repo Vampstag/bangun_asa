@@ -1,36 +1,47 @@
 VIDEO HERO
 ==========
-Taruh file di folder ini dengan nama persis:
+Taruh di folder ini (nama persis):
 
-  hero.mp4    (wajib, H.264)
-  hero.webm   (opsional, ukuran lebih kecil di Chrome/Firefox)
+  hero-hd.mp4   1920x1080, untuk layar lebar (mulai 1000 px) dengan koneksi yang cukup
+  hero-sd.mp4   1280x720, untuk HP, tablet, dan koneksi lambat
 
-Begitu hero.mp4 ada, halaman depan otomatis memakainya (refresh browser).
-Tanpa file, hero memakai foto. Tidak perlu mengubah kode.
+Salah satu cukup (situs memakai yang ada). Begitu ada, halaman depan otomatis memakainya sebagai latar (refresh browser).
+Tanpa file, hero memakai foto proyek. Tidak perlu mengubah kode.
 
-Spesifikasi yang disarankan
-- Durasi 8-15 detik, dibuat bisa diulang mulus (loop).
-- Resolusi 1920x1080, rasio 16:9, 24-30 fps.
-- Tanpa suara (buang audio track).
-- Ukuran target di bawah 4 MB (maksimal 8 MB), supaya cepat dimuat di HP.
+YANG TERPASANG SEKARANG
+Video revisi, dikompres dari sumber 1920x1080 (43 MB, 50 fps, 36,8 detik) yang disimpan di
+docs/sumber-klien/hero-video-sumber-asli.mp4 (tidak ikut ke GitHub). Keduanya H.264, tanpa audio, 50 fps (sama dengan
+sumber, supaya irama gerak tidak berubah), atom "moov" di depan (faststart) supaya mulai diputar sebelum selesai diunduh.
+
+  hero-hd.mp4   1920x1080   ~3,0 Mbps   14,0 MB   PSNR rata-rata 41,1 dB (frame terendah 31,7)   SSIM 0,984
+  hero-sd.mp4   1280x720    ~1,5 Mbps    7,0 MB   PSNR rata-rata 36,9 dB (frame terendah 27,9)   SSIM 0,971
+
+Diukur pada semua frame terhadap sumber (versi SD dibandingkan setelah diperbesar ke 1080p); makin tinggi makin dekat.
+Dikompres dengan ffmpeg (x264, preset veryslow, dua kali proses).
+
+PERHATIAN: pada potongan gambar denah (sekitar detik 12 sampai 17) ada watermark "La Structures" yang menempel di
+rekaman. Pastikan lisensi potongan itu, atau ganti potongannya, sebelum situs ditayangkan.
+
+Catatan ekspor: sebagian besar potongan aslinya sekitar 24-32 gambar per detik lalu diekspor di 50 fps. Untuk revisi
+berikutnya, ekspor dengan frame rate yang sama dengan rekaman (mis. 25 atau 30 fps) supaya gerak paling rata.
+
+Menghemat data
+- Memperpendek video paling efektif: 20 detik saja sudah memangkas ukuran sekitar 45%.
+- Naikkan kualitas lagi: bitrate HD 4,5 Mbps (42,0 dB, ~19 MB), tapi sebanding dengan beban unduh yang jauh lebih besar.
+
+Spesifikasi untuk video pengganti
+- Tanpa suara. Dibuat bisa diulang mulus (loop). 30 fps (atau samakan dengan sumber; jangan ubah frame rate saat kompres).
 - Komposisi: area teks (kiri bawah) sebaiknya tidak terlalu terang atau ramai.
-- Gerakan lambat dan stabil (drone, timelapse, pan pelan) terlihat paling mewah.
+- Gerakan lambat dan stabil terlihat paling mewah.
 
-Kompres dengan ffmpeg (jika terpasang):
-  ffmpeg -i sumber.mov -an -vf "scale=1920:-2" -c:v libx264 -crf 28 -preset slow -movflags +faststart hero.mp4
-  ffmpeg -i sumber.mov -an -vf "scale=1920:-2" -c:v libvpx-vp9 -crf 36 -b:v 0 hero.webm
-
-Tanpa ffmpeg: pakai HandBrake (gratis), preset "Fast 1080p30", hapus audio, RF sekitar 26-28.
+Cara mengompres
+- Dengan ffmpeg (jika terpasang). Pakai frame rate sumber (jangan tambahkan -r):
+  ffmpeg -i sumber.mp4 -an -vf "scale=1920:-2" -c:v libx264 -b:v 3000k -maxrate 4800k -bufsize 6000k -preset veryslow -pix_fmt yuv420p -movflags +faststart hero-hd.mp4
+  ffmpeg -i sumber.mp4 -an -vf "scale=1280:-2" -c:v libx264 -b:v 1500k -maxrate 2400k -bufsize 3000k -preset veryslow -pix_fmt yuv420p -movflags +faststart hero-sd.mp4
+- Tanpa ffmpeg: HandBrake (gratis), preset "Fast 1080p30" dan "Fast 720p30", hapus audio, centang "Web optimized".
+- Di Windows tanpa alat tambahan: transcoder bawaan lewat PowerShell (MediaTranscoder), lalu pindahkan atom moov ke depan.
 
 Perilaku otomatis
 - Foto tampil dulu, video fade in begitu siap diputar.
 - Video berhenti saat hero keluar layar (hemat baterai).
 - Pengguna dengan "reduce motion" atau mode hemat data tetap melihat foto saja.
-
-PLACEHOLDER SAAT INI
-hero.mp4 yang sekarang adalah klip stok sementara (720p, 10,5 detik, 3,2 MB):
-"Sunset behind a building under construction", Mixkit, ID 3971
-https://mixkit.co/free-stock-video/sunset-behind-a-building-under-construction-3971/
-Lisensi Mixkit: gratis untuk proyek komersial, tanpa atribusi. Tetap cek ulang syaratnya
-di mixkit.co/license sebelum situs tayang, lalu ganti dengan footage proyek Bangun Asa.
-Cukup timpa file hero.mp4 dengan file baru bernama sama.

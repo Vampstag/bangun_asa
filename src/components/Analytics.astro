@@ -1,0 +1,103 @@
+---
+/**
+ * Pemasang tag statistik/iklan. Hanya di situs live (bukan saat npm run dev) dan hanya bila ID diisi di dashboard
+ * (src/data/content/tracking.json). ID yang formatnya salah diabaikan. Pengiriman kejadian ada di src/scripts/leads.ts.
+ */
+import tracking from '../data/content/tracking.json';
+
+const clean = (v: string | undefined, re: RegExp) => {
+  const s = (v ?? '').trim();
+  return re.test(s) ? s : '';
+};
+const live = import.meta.env.PROD;
+const ga4 = live ? clean(tracking.ga4_id, /^G-[A-Z0-9]{6,14}$/) : '';
+const tiktok = live ? clean(tracking.tiktok_pixel_id, /^[A-Z0-9]{15,30}$/) : '';
+const meta = live ? clean(tracking.meta_pixel_id, /^[0-9]{8,20}$/) : '';
+---
+
+{ga4 && <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ga4}`} />}
+{ga4 && <script is:inline define:vars={{ ga4 }}>
+  /* eslint-disable -- potongan kode resmi penyedia */
+  if (!window.gtag) {
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () {
+      window.dataLayer.push(arguments);
+    };
+    window.gtag('js', new Date());
+    // kunjungan halaman dikirim manual di leads.ts (situs berpindah halaman tanpa muat ulang)
+    window.gtag('config', ga4, { send_page_view: false });
+  }
+</script>}
+{tiktok && <script is:inline define:vars={{ tiktok }}>
+  /* eslint-disable -- potongan kode resmi penyedia */
+  if (!window.ttq) {
+    (function (w, d, t) {
+      w.TiktokAnalyticsObject = t;
+      var ttq = (w[t] = w[t] || []);
+      ttq.methods = [
+        'page',
+        'track',
+        'identify',
+        'instances',
+        'debug',
+        'on',
+        'off',
+        'once',
+        'ready',
+        'alias',
+        'group',
+        'enableCookie',
+        'disableCookie',
+        'holdConsent',
+        'revokeConsent',
+        'grantConsent',
+      ];
+      ttq.setAndDefer = function (obj, m) {
+        obj[m] = function () {
+          obj.push([m].concat(Array.prototype.slice.call(arguments, 0)));
+        };
+      };
+      for (var i = 0; i < ttq.methods.length; i++) ttq.setAndDefer(ttq, ttq.methods[i]);
+      ttq.instance = function (id) {
+        var e = ttq._i[id] || [];
+        for (var n = 0; n < ttq.methods.length; n++) ttq.setAndDefer(e, ttq.methods[n]);
+        return e;
+      };
+      ttq.load = function (id, opts) {
+        var src = 'https://analytics.tiktok.com/i18n/pixel/events.js';
+        ttq._i = ttq._i || {};
+        ttq._i[id] = [];
+        ttq._i[id]._u = src;
+        ttq._t = ttq._t || {};
+        ttq._t[id] = +new Date();
+        ttq._o = ttq._o || {};
+        ttq._o[id] = opts || {};
+        var s = d.createElement('script');
+        s.type = 'text/javascript';
+        s.async = true;
+        s.src = src + '?sdkid=' + id + '&lib=' + t;
+        var first = d.getElementsByTagName('script')[0];
+        first.parentNode.insertBefore(s, first);
+      };
+      ttq.load(tiktok);
+    })(window, document, 'ttq');
+  }
+</script>}
+{meta && <script is:inline define:vars={{ meta }}>
+  /* eslint-disable -- potongan kode resmi penyedia */
+  if (!window.fbq) {
+    var n = (window.fbq = function () {
+      n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+    });
+    window._fbq = n;
+    n.push = n;
+    n.loaded = true;
+    n.version = '2.0';
+    n.queue = [];
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://connect.facebook.net/en_US/fbevents.js';
+    document.head.appendChild(s);
+    window.fbq('init', meta);
+  }
+</script>}

@@ -1,0 +1,64 @@
+---
+/**
+ * Kontrol geser untuk deretan kartu di HP: nomor posisi, petunjuk, dan tombol panah besar untuk yang belum terbiasa
+ * menggeser. `target` = id wadah yang bisa digeser; `total` = jumlah kartu. Disembunyikan di desktop.
+ */
+import { langOf } from '../data/site';
+import { t } from '../i18n';
+
+interface Props {
+  target: string;
+  total: number;
+}
+const { target, total } = Astro.props;
+const ui = t(langOf(Astro.url.pathname)).ui;
+---
+
+<div class="swipe" data-swipe={target}>
+  <p class="swipe__txt">
+    <b>
+      <span data-swipe-cur>1</span> / {total}
+    </b>
+    <span>{ui.swipe}</span>
+  </p>
+  <button type="button" data-swipe-step="-1" aria-label={ui.swipePrev}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m14 6-6 6 6 6"></path>
+    </svg>
+  </button>
+  <button type="button" data-swipe-step="1" aria-label={ui.swipeNext}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m10 6 6 6-6 6"></path>
+    </svg>
+  </button>
+</div>
+
+<script>
+  // Delegasi di document: tetap hidup setelah transisi halaman, tanpa pendengar yang menumpuk.
+  const stepOf = (box: HTMLElement) => {
+    const [a, b] = box.children as unknown as HTMLElement[];
+    if (!a) return box.clientWidth;
+    return b ? b.offsetLeft - a.offsetLeft : a.offsetWidth;
+  };
+  document.addEventListener('click', (e) => {
+    const btn = (e.target as Element).closest<HTMLElement>('[data-swipe-step]');
+    const ui = btn?.closest<HTMLElement>('[data-swipe]');
+    const box = ui && document.getElementById(ui.dataset.swipe ?? '');
+    if (!btn || !box) return;
+    box.scrollBy({ left: Number(btn.dataset.swipeStep) * stepOf(box), behavior: 'smooth' });
+  });
+  document.addEventListener(
+    'scroll',
+    (e) => {
+      const box = e.target as HTMLElement;
+      if (!box?.id) return;
+      const ui = document.querySelector(`[data-swipe="${box.id}"]`);
+      const cur = ui?.querySelector('[data-swipe-cur]');
+      if (!cur) return;
+      const atEnd = box.scrollLeft >= box.scrollWidth - box.clientWidth - 4;
+      const i = atEnd ? box.children.length : Math.round(box.scrollLeft / stepOf(box)) + 1;
+      cur.textContent = String(Math.min(box.children.length, Math.max(1, i)));
+    },
+    { capture: true, passive: true },
+  );
+</script>

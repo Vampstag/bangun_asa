@@ -1,0 +1,259 @@
+---
+/**
+ * "Dari mana angka ini?": cara hitung, spesifikasi acuan tiap finishing, dan sumber data resmi, supaya hasil kalkulator
+ * bisa diperiksa. Daftar harga kontraktor lain sengaja tidak ditautkan di situs; rinciannya di docs/DASAR-KALKULATOR.md.
+ */
+import { langOf } from '../../data/site';
+import { t } from '../../i18n';
+import { CALC, fill, fmtPerM2 } from '../../data/calculator';
+import SectionHead from '../SectionHead.astro';
+
+const lang = langOf(Astro.url.pathname);
+const C = t(lang).pages.calculator;
+const B = C.basis;
+const year = CALC.ikkYear;
+const steps = [
+  CALC.confirmed ? B.steps.confirmed : B.steps.research,
+  B.steps.floors,
+  B.steps.region,
+  B.steps.parts,
+  B.steps.range,
+];
+const finishes = (['standard', 'mid', 'premium'] as const).map((k) => ({
+  label: C.finishes[k],
+  rate: fmtPerM2(CALC.rate[k], C.units, lang),
+}));
+const sources = [
+  {
+    text: fill(B.sources.ikk, { year }),
+    href: 'https://www.bps.go.id/id/publication/2026/10/01/b37430e50df8d88d771bb79c/indeks-kemahalan-konstruksi-provinsi-dan-kabupaten-kota-2026.html',
+  },
+  {
+    text: B.sources.ihpb,
+    href: 'https://databoks.katadata.co.id/ekonomi-makro/statistik/3a6719d2aa29da8/indeks-harga-perdagangan-besar-ihpb-bahan-bangunan',
+  },
+  {
+    text: B.sources.permen,
+    href: 'https://jdih.pu.go.id/internal/assets/assets/produk/PermenPUPR/2007/12/PerMenPU45-2007.pdf',
+  },
+  {
+    text: B.sources.kepmen,
+    href: 'https://jdih.pu.go.id/internal/assets/assets/produk/KepmenPUPR/2024/05/2024kmpupr943.pdf',
+  },
+];
+---
+
+<section class="sec cb" id="dasar">
+  <div class="wrap">
+    <SectionHead label={B.label} title={B.title} />
+    <p class="cb__intro" data-reveal>
+      {B.intro}
+    </p>
+
+    <ol class="cb__steps">
+      {steps.map((s, i) => (
+        <li data-reveal>
+          <span class="cb__no">{String(i + 1).padStart(2, '0')}</span>
+          <h3>{s.title}</h3>
+          <p>{fill(s.text, { year })}</p>
+        </li>
+      ))}
+    </ol>
+
+    <div class="cb__more">
+      <details class="cb__box">
+        <summary>{B.specTitle}</summary>
+        <div class="cb__scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">{B.specHead}</th>
+                {finishes.map((f) => (
+                  <th scope="col">
+                    {f.label}
+                    <small>{f.rate}/m²</small>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {B.spec.map(([part, ...cells]) => (
+                <tr>
+                  <th scope="row">{part}</th>
+                  {cells.map((c, i) => (
+                    <td data-label={finishes[i].label}>{c}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <details class="cb__box">
+        <summary>{B.sourcesTitle}</summary>
+        <ul class="cb__sources">
+          {sources.map((s) => (
+            <li>
+              <a href={s.href} target="_blank" rel="noopener">
+                {s.text} <span aria-hidden="true">↗</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cb__intro {
+    max-width: 52ch;
+    margin-bottom: var(--head-gap);
+    font-size: var(--fs-lead);
+    line-height: 1.6;
+    color: var(--mute);
+  }
+  .cb__steps {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--gap-card);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .cb__steps li {
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .cb__no {
+    display: block;
+    margin-bottom: 16px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--red);
+  }
+  .cb__steps h3 {
+    margin-bottom: var(--space-h3);
+    font-size: var(--fs-h4);
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  .cb__steps p {
+    font-size: var(--fs-small);
+    line-height: 1.65;
+    color: var(--mute);
+  }
+  .cb__more {
+    margin-top: var(--head-gap);
+    border-bottom: 1px solid var(--line);
+  }
+  .cb__box {
+    border-top: 1px solid var(--line);
+  }
+  .cb__box summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 64px;
+    font-size: var(--fs-h4);
+    font-weight: 500;
+    cursor: pointer;
+    list-style: none;
+  }
+  .cb__box summary::-webkit-details-marker {
+    display: none;
+  }
+  .cb__box summary::after {
+    content: '+';
+    font-weight: 300;
+    font-size: 1.75rem;
+    transition: rotate 0.4s var(--ease);
+  }
+  .cb__box[open] summary::after {
+    rotate: 45deg;
+  }
+  table {
+    width: 100%;
+    margin-bottom: 28px;
+    border-collapse: collapse;
+    font-size: var(--fs-small);
+    line-height: 1.5;
+  }
+  th,
+  td {
+    padding: 14px 16px 14px 0;
+    border-top: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
+  thead th {
+    border-top: 0;
+    font-weight: 600;
+  }
+  thead small {
+    display: block;
+    font-weight: 400;
+    color: var(--mute);
+  }
+  tbody th {
+    width: 22%;
+    font-weight: 600;
+  }
+  .cb__sources {
+    margin: 0 0 24px;
+    padding: 0;
+    list-style: none;
+  }
+  .cb__sources a {
+    display: block;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+    font-size: var(--fs-small);
+    line-height: 1.55;
+  }
+  .cb__sources a:hover {
+    color: var(--red);
+  }
+  @media (max-width: 1100px) {
+    .cb__steps {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 700px) {
+    .cb__steps {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    /* HP: tiap baris tabel menjadi kartu ringkas, tanpa geser ke samping */
+    table,
+    tbody,
+    tr,
+    tbody th,
+    td {
+      display: block;
+      width: auto;
+    }
+    thead {
+      display: none;
+    }
+    tr {
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+    }
+    tbody th,
+    td {
+      padding: 0;
+      border: 0;
+    }
+    tbody th {
+      margin-bottom: 8px;
+    }
+    td {
+      margin-top: 6px;
+    }
+    td::before {
+      content: attr(data-label) ': ';
+      font-weight: 600;
+    }
+  }
+</style>

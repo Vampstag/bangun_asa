@@ -13,7 +13,8 @@ Options -Indexes
   # Alamat halaman lama (situs PHP sebelumnya) dialihkan ke bagian yang setara di situs baru, supaya
   # tautan lama dan hasil Google tidak jadi halaman kosong.
   RewriteRule ^index\.php$ / [R=301,L]
-  RewriteRule ^(tentang-kami|about|terms|privacy)\.php$ / [R=301,L]
+  RewriteRule ^(tentang-kami|about)\.php$ /about [R=301,L]
+  RewriteRule ^(terms|privacy)\.php$ / [R=301,L]
   RewriteRule ^(portfolio|gallery)\.php$ /#karya [R=301,NE,L]
   RewriteRule ^services\.php$ /#layanan [R=301,NE,L]
   RewriteRule ^testimonial\.php$ /#testimoni [R=301,NE,L]

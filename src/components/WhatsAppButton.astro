@@ -5,102 +5,202 @@ import { t } from '../i18n';
 const lang = langOf(Astro.url.pathname);
 const d = t(lang);
 const ui = d.ui;
+// mode giliran: tombol langsung membuka WhatsApp (sekali ketuk); nomornya ditentukan leads.ts
+const rotate = SITE.contact.waMode === 'giliran';
 ---
 
 <aside aria-label={ui.quickContact}>
-  <!-- Tombol melayang: membuka pilihan CS. Satu ketukan lagi langsung masuk ke WhatsApp CS yang dipilih. -->
-  <button
-    class="wa"
-    type="button"
-    aria-label={ui.chatWhatsAppAria}
-    aria-expanded="false"
-    aria-controls="wa-pop"
-    data-wa-float
-  >
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="1.6"
-        stroke-linejoin="round"
-      ></path>
-    </svg>
-    <span>{ui.chatWhatsApp}</span>
-  </button>
+  <!-- Desktop: tombol melayang. HP: bilah aksi di bawah layar, mudah dijangkau jempol. -->
+  {rotate ? (
+    <a class="wa" href={whatsappUrl(lang)} target="_blank" rel="noopener" aria-label={ui.chatWhatsAppAria} data-wa-pill>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linejoin="round"
+        ></path>
+      </svg>
+      <span>{ui.chatWhatsApp}</span>
+    </a>
+  ) : (
+    <button
+      class="wa"
+      type="button"
+      aria-label={ui.chatWhatsAppAria}
+      aria-expanded="false"
+      aria-controls="wa-pop"
+      data-wa-pill
+      data-wa-toggle
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linejoin="round"
+        ></path>
+      </svg>
+      <span>{ui.chatWhatsApp}</span>
+    </button>
+  )}
 
-  <div class="wa-pop" id="wa-pop" role="group" aria-label={ui.chatWhatsApp} inert data-wa-pop>
-    {SITE.contact.phones.map((p) => (
-      <a
-        class="wa-pop__item"
-        href={whatsappUrl(lang, undefined, p.tel)}
-        target="_blank"
-        rel="noopener"
-        aria-label={`${d.menu.chatWith} ${p.name}`}
-      >
-        <span class="wa-pop__av" aria-hidden="true">
-          {p.name.replace(/^CS\s+/, '').charAt(0)}
-        </span>
-        <span class="wa-pop__who">
-          <b>{p.name}</b>
-          <small>{p.display}</small>
-        </span>
-        <span class="wa-pop__go" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path
-              d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.6"
-              stroke-linejoin="round"
-            ></path>
-          </svg>
-        </span>
+  <div class="mbar" data-mbar>
+    {rotate ? (
+      <a class="mbar__wa" href={whatsappUrl(lang)} target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linejoin="round"
+          ></path>
+        </svg>
+        {ui.chatWhatsApp}
       </a>
-    ))}
+    ) : (
+      <button class="mbar__wa" type="button" aria-expanded="false" aria-controls="wa-pop" data-wa-toggle>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linejoin="round"
+          ></path>
+        </svg>
+        {ui.chatWhatsApp}
+      </button>
+    )}
+    <a class="mbar__call" href={`tel:${SITE.contact.phones[0].tel}`}>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6.6 3.5h2.5l1.3 3.4-1.7 1.2a11 11 0 0 0 5.2 5.2l1.2-1.7 3.4 1.3v2.5a1.8 1.8 0 0 1-2 1.8A14.5 14.5 0 0 1 4.8 5.5a1.8 1.8 0 0 1 1.8-2z" />
+      </svg>
+      {d.menu.callTo}
+    </a>
   </div>
+
+  {!rotate && (
+    <div class="wa-pop" id="wa-pop" data-wa-fixed role="group" aria-label={ui.chatWhatsApp} inert data-wa-pop>
+      <p class="wa-pop__h">{ui.chooseCs}</p>
+      {SITE.contact.phones.map((p) => (
+        <a
+          class="wa-pop__item"
+          href={whatsappUrl(lang, undefined, p.tel)}
+          target="_blank"
+          rel="noopener"
+          aria-label={`${d.menu.chatWith} ${p.name}`}
+        >
+          <span class="wa-pop__av" aria-hidden="true">
+            {p.name.replace(/^CS\s+/, '').charAt(0)}
+          </span>
+          <span class="wa-pop__who">
+            <b>{p.name}</b>
+            <small>{p.display}</small>
+          </span>
+          <span class="wa-pop__go" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.2 3.6c-.5.4-1.3.1-1.3-.6V16A2.5 2.5 0 0 1 4 13.5z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              ></path>
+            </svg>
+          </span>
+        </a>
+      ))}
+    </div>
+  )}
 </aside>
 
 <script>
   // Dipasang ulang setiap halaman dimuat (termasuk setelah transisi halaman Astro).
   document.addEventListener('astro:page-load', () => {
-    const btn = document.querySelector<HTMLElement>('[data-wa-float]');
+    const pill = document.querySelector<HTMLElement>('[data-wa-pill]');
+    const bar = document.querySelector<HTMLElement>('[data-mbar]');
+    const triggers = [...document.querySelectorAll<HTMLElement>('[data-wa-toggle]')];
     const pop = document.querySelector<HTMLElement>('[data-wa-pop]');
-    if (!btn || !pop) return;
+    if (!pill || !bar) return;
     const ac = new AbortController();
     const opt = { signal: ac.signal };
+    const phone = matchMedia('(max-width: 900px)');
+    // bilah HP disembunyikan saat form atau kalkulator sedang dipakai, supaya tidak menutupi isian
+    const busy = new Set<Element>();
+    let typing = false;
 
     const set = (open: boolean, refocus = false) => {
-      pop.classList.toggle('is-open', open);
-      pop.toggleAttribute('inert', !open);
-      btn.setAttribute('aria-expanded', String(open));
-      if (!open && refocus) btn.focus();
+      pop?.classList.toggle('is-open', open);
+      pop?.toggleAttribute('inert', !open);
+      for (const t of triggers) t.setAttribute('aria-expanded', String(open));
+      if (!open && refocus) (phone.matches ? bar.querySelector('button') : pill)?.focus();
     };
     const sync = () => {
-      const on = scrollY > 500;
-      btn.classList.toggle('is-on', on);
-      if (!on) set(false); // tombol menghilang, pilihan ikut tertutup
+      pill.classList.toggle('is-on', scrollY > 500);
+      // di HP, bilah muncul setelah tombol utama di layar pertama terlewati
+      const barOn = scrollY > innerHeight * 0.45 && !busy.size && !typing;
+      bar.classList.toggle('is-on', barOn);
+      if (phone.matches ? !barOn : scrollY <= 500) set(false);
     };
 
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) busy.add(e.target);
+          else busy.delete(e.target);
+        }
+        sync();
+      },
+      { rootMargin: '0px 0px -25% 0px' },
+    );
+    for (const el of document.querySelectorAll('#kontak, #kalkulator')) io.observe(el);
+
+    document.addEventListener(
+      'focusin',
+      (e) => {
+        typing = !!(e.target as Element).closest('input, textarea, select');
+        sync();
+      },
+      opt,
+    );
+    document.addEventListener(
+      'focusout',
+      () => {
+        typing = false;
+        sync();
+      },
+      opt,
+    );
     addEventListener('scroll', sync, { passive: true, ...opt });
-    btn.addEventListener('click', () => set(!pop.classList.contains('is-open')), opt);
+    for (const t of triggers) t.addEventListener('click', () => set(!pop?.classList.contains('is-open')), opt);
     // Klik di luar (termasuk tombol hamburger) atau memilih salah satu CS menutup pilihan.
     document.addEventListener(
       'click',
       (e) => {
         const t = e.target as Element;
-        if (t.closest('[data-wa-pop] a') || !t.closest('[data-wa-pop], [data-wa-float]')) set(false);
+        if (t.closest('[data-wa-pop] a') || !t.closest('[data-wa-pop], [data-wa-toggle]')) set(false);
       },
       opt,
     );
     addEventListener(
       'keydown',
       (e) => {
-        if (e.key === 'Escape' && pop.classList.contains('is-open')) set(false, true);
+        if (e.key === 'Escape' && pop?.classList.contains('is-open')) set(false, true);
       },
       opt,
     );
-    document.addEventListener('astro:before-swap', () => ac.abort(), { once: true });
+    document.addEventListener(
+      'astro:before-swap',
+      () => {
+        ac.abort();
+        io.disconnect();
+      },
+      { once: true },
+    );
     sync();
   });
 </script>

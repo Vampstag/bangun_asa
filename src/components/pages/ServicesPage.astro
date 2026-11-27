@@ -1,0 +1,118 @@
+---
+/**
+ * Halaman Layanan (/services dan /en/services), pola Heritage: hero foto, kartu "termasuk di setiap layanan",
+ * kartu layanan beserta cakupannya, cara kerja 7 langkah, FAQ, ajakan, form.
+ */
+import Layout from '../../layouts/Layout.astro';
+import Header from '../Header.astro';
+import Footer from '../Footer.astro';
+import SideNav from '../SideNav.astro';
+import Cta from '../Cta.astro';
+import QuoteForm from '../QuoteForm.astro';
+import SectionHead from '../SectionHead.astro';
+import Faq from '../home/Faq.astro';
+import PageHeroH from './PageHeroH.astro';
+import CtaPhoto from './CtaPhoto.astro';
+import Process from '../home/Process.astro';
+import Model3D from '../home/Model3D.astro';
+import HBtn from './HBtn.astro';
+import Icon from './Icon.astro';
+import { langOf } from '../../data/site';
+import { getPages } from '../../data/pages';
+import { t } from '../../i18n';
+import type { IconName } from '../../data/icons';
+import heroImage from '../../assets/real/proyek-4.webp';
+import bandImage from '../../assets/real/proyek-1.webp';
+
+const lang = langOf(Astro.url.pathname);
+const { services: S } = getPages(lang);
+const includedIcons: IconName[] = ['consult', 'eye', 'plan', 'quality'];
+const serviceIcons: IconName[] = ['home', 'tools', 'layout', 'shop'];
+// Pilihan "jenis proyek" di form yang diisi otomatis: rumah, renovasi, renovasi, ruko.
+const prefill = [0, 5, 5, 1];
+const models = ['new', 'renovation', 'total', 'commercial'] as const;
+---
+
+<Layout title={S.meta.title} description={S.meta.description}>
+  <Header contactHere />
+  <main id="top">
+    <PageHeroH
+      title={S.title}
+      lead={S.lead}
+      image={heroImage}
+      action={{ label: t(lang).navCta.label, href: '#kontak' }}
+    />
+
+    <!-- Yang termasuk di semua layanan -->
+    <section class="tone tone--top" aria-label={S.includedLabel}>
+      <div class="wrap">
+        <p class="eyebrow" data-reveal>
+          {S.includedLabel}
+        </p>
+        <ul class="ic-grid">
+          {S.included.map((x, i) => (
+            <li class="ic" data-reveal>
+              <span class="ic__ico">
+                <Icon name={includedIcons[i]} />
+              </span>
+              <span class="ic__txt">{x}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <!-- Kartu layanan + cakupan -->
+    <section class="sec tone" id="cakupan">
+      <div class="wrap">
+        <SectionHead label={S.head.label} title={S.head.title} />
+        <ul class="sc-grid" data-stack>
+          {S.items.map((s, i) => (
+            <li class="sc" data-reveal>
+              <div class="sc__body">
+                <span class="sc__ico">
+                  <Icon name={serviceIcons[i]} />
+                </span>
+                <h3 class="sc__title">{s.title}</h3>
+                <p class="sc__tag">{s.tag}</p>
+                <p class="sc__text">{s.text}</p>
+                <button class="sc__more" type="button" aria-expanded="false" data-scope-toggle>
+                  {S.scopeToggle}
+                  <i aria-hidden="true" />
+                </button>
+                <ul class="sc__scope" aria-label={S.scopeLabel}>
+                  {s.scope.map((x) => (
+                    <li>{x}</li>
+                  ))}
+                </ul>
+                <HBtn class="sc__btn" href="#kontak" label={S.cta} data-prefill={prefill[i]} />
+              </div>
+              <Model3D kind={models[i]} class="sc__model" />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <Process />
+    <Faq />
+    <CtaPhoto image={bandImage} />
+    <Cta>
+      <QuoteForm />
+    </Cta>
+  </main>
+  <Footer />
+  <SideNav page="services" />
+</Layout>
+
+<script>
+  // HP: daftar cakupan dibuka dengan satu ketukan supaya halaman tidak terlalu panjang.
+  document.addEventListener('click', (e) => {
+    const b = (e.target as Element).closest<HTMLButtonElement>('[data-scope-toggle]');
+    if (!b) return;
+    const open = b.getAttribute('aria-expanded') !== 'true';
+    b.setAttribute('aria-expanded', String(open));
+    b.parentElement?.querySelector('.sc__scope')?.classList.toggle('is-open', open);
+    window.dispatchEvent(new Event('resize'));
+  });
+</script>

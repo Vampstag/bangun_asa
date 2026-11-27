@@ -1,0 +1,104 @@
+---
+/**
+ * Navigasi samping yang minimalis (pengganti scrollbar yang disembunyikan): garis-garis kecil di tepi kanan layar,
+ * satu per section. Garis aktif memanjang dan berwarna merah; nama section muncul saat di-hover atau difokus.
+ * Klik menggulir halus ke section (ditangani motion.ts untuk semua tautan #anchor). Hanya tampil di layar lebar,
+ * dan section yang tidak ada di halaman otomatis dilewati.
+ */
+import { SIDE_NAV, type SidePage } from '../data/sidenav';
+import { langOf } from '../data/site';
+import { t } from '../i18n';
+import { CALC_ENABLED } from '../data/calculator';
+
+interface Props {
+  page: SidePage;
+}
+
+const { page } = Astro.props;
+const ui = t(langOf(Astro.url.pathname)).ui;
+// Item kalkulator di beranda hanya bila kalkulator aktif (tarif sudah dikonfirmasi).
+const items = SIDE_NAV[page]
+  .filter((id) => id !== 'hitung' || CALC_ENABLED)
+  .map((id) => ({ id, label: ui.side[id as keyof typeof ui.side] ?? id }));
+---
+
+<nav class="sidenav" aria-label={ui.sideNav} data-sidenav>
+  <ol>
+    {items.map((it) => (
+      <li>
+        <a href={`#${it.id}`} data-side={it.id}>
+          <span class="sidenav__label">{it.label}</span>
+          <i class="sidenav__tick" aria-hidden="true" />
+        </a>
+      </li>
+    ))}
+  </ol>
+</nav>
+
+<script>
+  // Menandai section yang sedang dibaca dan menyesuaikan warna dengan latar (terang/gelap). Dipasang ulang tiap halaman dimuat.
+  let abort: AbortController | null = null;
+
+  document.addEventListener('astro:page-load', () => {
+    abort?.abort();
+    const nav = document.querySelector<HTMLElement>('[data-sidenav]');
+    if (!nav) return;
+    abort = new AbortController();
+    const { signal } = abort;
+
+    // Buang tautan ke section yang tidak ada di halaman ini.
+    const entries = Array.from(nav.querySelectorAll<HTMLAnchorElement>('a[data-side]')).flatMap((a) => {
+      const target = document.getElementById(a.dataset.side ?? '');
+      if (!target) {
+        a.parentElement?.remove();
+        return [];
+      }
+      return [{ a, target }];
+    });
+    if (entries.length < 2) {
+      nav.hidden = true;
+      return;
+    }
+
+    const darks = Array.from(document.querySelectorAll<HTMLElement>('[data-theme="dark"]'));
+    const curtain = document.querySelector<HTMLElement>('[data-curtain]');
+    let queued = false;
+
+    const update = () => {
+      queued = false;
+      const reading = innerHeight * 0.42;
+      let current = 0;
+      entries.forEach((e, i) => {
+        if (e.target.getBoundingClientRect().top <= reading) current = i;
+      });
+      if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) current = entries.length - 1;
+      entries.forEach((e, i) => {
+        e.a.classList.toggle('is-active', i === current);
+        if (i === current) e.a.setAttribute('aria-current', 'true');
+        else e.a.removeAttribute('aria-current');
+      });
+
+      // Warna: putih saat berada di atas bagian gelap. Hero menempel (sticky) dan tertutup tirai, jadi dilewati bila sudah tertutup.
+      const y = innerHeight / 2;
+      const covered = curtain ? curtain.getBoundingClientRect().top <= y : false;
+      const onDark = darks.some((el) => {
+        if (covered && el.classList.contains('hero')) return false;
+        const r = el.getBoundingClientRect();
+        return r.top <= y && r.bottom >= y;
+      });
+      nav.classList.toggle('on-dark', onDark);
+    };
+    const queue = () => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(update);
+    };
+
+    addEventListener('scroll', queue, { passive: true, signal });
+    addEventListener('resize', queue, { signal });
+    update();
+    nav.classList.add('is-ready');
+  });
+
+  document.addEventListener('astro:before-swap', () => abort?.abort());
+</script>

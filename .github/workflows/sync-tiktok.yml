@@ -1,0 +1,62 @@
+# Otomatis: tiap beberapa jam cek akun TikTok. Kalau ada video baru, thumbnail dan data disimpan ke repo,
+# lalu situs di-deploy ulang. Kalau tidak ada yang baru, tidak ada commit dan tidak ada deploy.
+# Penjelasan dan fallback: docs/SETUP-CMS-DAN-DEPLOY.md bagian 6.
+
+name: Sinkron video TikTok
+
+on:
+  schedule:
+    - cron: '23 */6 * * *' # setiap 6 jam (waktu UTC)
+  workflow_dispatch: # tombol "Run workflow" manual di tab Actions
+
+# Dua sinkronisasi tidak boleh berjalan bersamaan.
+concurrency:
+  group: sync-tiktok
+  cancel-in-progress: false
+
+permissions:
+  contents: write # commit hasil sinkronisasi
+  actions: write # memicu workflow deploy
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Membuka profil TikTok di Chrome (sudah ada di runner). Gagal (mis. TikTok memblokir) = job merah, situs tidak berubah.
+      - name: Ambil video terbaru
+        run: node tools/sync-tiktok.cjs
+        env:
+          CI: '1'
+          CHROME_PATH: /usr/bin/google-chrome
+
+      - name: Commit bila ada video baru
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/content/tiktok.json src/assets/social
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Tidak ada video baru."
+          else
+            git commit -m "Konten: video TikTok terbaru"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Commit oleh GITHUB_TOKEN tidak memicu workflow lain secara otomatis (kecuali workflow_dispatch), jadi deploy dipicu manual di sini.
+      - name: Deploy situs
+        if: steps.commit.outputs.changed == 'true'
+        run: gh workflow run deploy.yml --ref main
+        env:
+          GH_TOKEN: ${{ github.token }}

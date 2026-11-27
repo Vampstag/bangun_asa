@@ -1,0 +1,34 @@
+---
+import { getHome } from '../../data/home';
+import { href, langOf, whatsappUrl } from '../../data/site';
+
+interface Props {
+  /** true di halaman yang punya form sendiri (Proyek, Layanan, Tentang): tombol utama menggulir ke form di halaman itu. */
+  inPage?: boolean;
+}
+
+const { inPage = false } = Astro.props;
+const lang = langOf(Astro.url.pathname);
+const { BAND } = getHome(lang);
+const here = Astro.url.pathname;
+---
+
+<!-- Ajakan di tengah halaman, tepat setelah hasil kerja (momen paling meyakinkan). -->
+<section class="band" aria-label={BAND.title}>
+  <div class="wrap">
+    <div class="band__panel" data-reveal>
+      <div class="band__txt">
+        <h2 class="band__title">{BAND.title}</h2>
+        <p>{BAND.text}</p>
+      </div>
+      <div class="band__act">
+        <a class="btn btn--light" href={inPage ? '#kontak' : href(BAND.primary.href, here)}>
+          {BAND.primary.label} <i aria-hidden="true"></i>
+        </a>
+        <a class="btn btn--ghost" href={whatsappUrl(lang)} target="_blank" rel="noopener">
+          {BAND.secondary}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>

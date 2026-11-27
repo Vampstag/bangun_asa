@@ -1,0 +1,227 @@
+---
+/**
+ * Ikon 3D: perisai legalitas ("shield"), kunci rumah ("key"), atau kalkulator ("calc"). Versi 3D-nya digambar Three.js (src/scripts/badge/),
+ * diunduh saat ikon mendekati layar. Gambar SVG diam di bawah ini hanya cadangan: tanpa JavaScript, tanpa WebGL, atau
+ * bila unduhan gagal. Hiasan saja.
+ */
+interface Props {
+  kind: 'shield' | 'key' | 'calc';
+  class?: string;
+  /** teks layar kalkulator */
+  screen?: { area: string; floors: string; cost: string };
+}
+const { kind, class: extra, screen } = Astro.props;
+---
+
+<span
+  class:list={['b3d', `b3d--${kind}`, extra]}
+  data-badge={kind}
+  data-screen={screen && JSON.stringify(screen)}
+  aria-hidden="true"
+>
+  {kind !== 'key' && <i class="b3d__shadow" />}
+  {kind === 'calc' ? (
+    <svg class="b3d__flat" viewBox="0 0 100 130">
+      <rect x="16" y="5" width="68" height="102" rx="12" fill="#262322" stroke="#d80d22" stroke-width="3" />
+      <rect x="23" y="13" width="54" height="24" rx="4" fill="#f7f6f3" />
+      <text x="72" y="31" text-anchor="end" font-size="14" font-weight="700" fill="#d80d22">
+        Rp ?
+      </text>
+      {[0, 1, 2, 3, 4].map((r) =>
+        [0, 1, 2, 3].map((c) => (
+          <rect
+            x={23 + c * 14.2}
+            y={43 + r * 12}
+            width="11.6"
+            height="9"
+            rx="3"
+            fill={r === 4 && c === 3 ? '#e50f26' : c === 3 ? '#524d4a' : '#f4f1ea'}
+          />
+        )),
+      )}
+    </svg>
+  ) : kind === 'shield' ? (
+    <svg class="b3d__flat" viewBox="0 0 100 112">
+      <path d="M50 4 92 20v32c0 28-18 46-42 56C26 98 8 80 8 52V20Z" fill="#e50f26" />
+      <path
+        d="M31 56l13 13 26-28"
+        fill="none"
+        stroke="#fff"
+        stroke-width="9.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  ) : (
+    <svg class="b3d__flat" viewBox="0 0 100 100">
+      <circle cx="50" cy="20" r="12" fill="none" stroke="#dfe3e8" stroke-width="4" />
+      <g transform="rotate(-18 50 32)">
+        <circle cx="50" cy="44" r="14" fill="#dfe3e8" />
+        <circle cx="50" cy="46" r="6" fill="#e50f26" />
+        <path d="M46 56h8v6l5 3v4l-5 2 4 3v4l-4 3v6l-4 5-4-5Z" fill="#dfe3e8" />
+      </g>
+      <g transform="rotate(26 50 32)">
+        <path d="M50 38 68 53h-3v23H35V53h-3Z" fill="#e50f26" />
+        <path d="M45 74v-9a5 5 0 0 1 10 0v9Z" fill="#fff" />
+      </g>
+    </svg>
+  )}
+</span>
+
+<script>
+  import type { Badge } from '../../scripts/badge';
+
+  const live = new Set<Badge>();
+  let observers: IntersectionObserver[] = [];
+  let page = 0;
+
+  const cleanup = () => {
+    page++;
+    for (const o of observers) o.disconnect();
+    observers = [];
+    for (const s of live) s.dispose();
+    live.clear();
+  };
+
+  // animasi masuk menunggu layar pembuka selesai supaya terlihat
+  const opened = () =>
+    new Promise<void>((done) => {
+      if (!document.documentElement.classList.contains('is-loading')) done();
+      else document.addEventListener('ba:intro-done', () => done(), { once: true });
+    });
+
+  const mount = (host: HTMLElement) => {
+    const mine = page;
+    let badge: Badge | null = null;
+    let seen = false;
+    let visible = false;
+    let loading = false;
+    const fail = () => host.classList.add('is-flat');
+    const sync = () => {
+      badge?.setRunning(visible);
+      if (badge && seen) void opened().then(() => mine === page && badge?.enter());
+    };
+
+    const near = new IntersectionObserver(
+      ([e]) => {
+        if (!e.isIntersecting || loading) return;
+        loading = true;
+        near.disconnect();
+        import('../../scripts/badge')
+          .then(({ createBadge }) => {
+            if (mine !== page) return;
+            badge = createBadge(host, host.dataset.badge ?? '', {
+              still: matchMedia('(prefers-reduced-motion: reduce)').matches,
+            });
+            if (!badge) return fail();
+            live.add(badge);
+            sync();
+          })
+          .catch(fail);
+      },
+      { rootMargin: '700px 0px' },
+    );
+    const view = new IntersectionObserver(
+      ([e]) => {
+        visible = e.isIntersecting;
+        if (e.intersectionRatio >= 0.6) seen = true;
+        sync();
+      },
+      { threshold: [0, 0.6] },
+    );
+    near.observe(host);
+    view.observe(host);
+    observers.push(near, view);
+  };
+
+  document.addEventListener('astro:page-load', () => {
+    cleanup();
+    for (const el of document.querySelectorAll<HTMLElement>('[data-badge]')) mount(el);
+  });
+  document.addEventListener('astro:before-swap', cleanup);
+</script>
+
+<style is:global>
+  .b3d {
+    --w: 72px;
+    --h: 1.12; /* tinggi = lebar x h */
+    --bleed: 17.5%; /* kanvas melebihi kotaknya supaya saat bergerak tidak ada yang terpotong */
+    position: relative;
+    display: block;
+    width: var(--w);
+    height: calc(var(--w) * var(--h));
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .b3d--key {
+    --w: 132px;
+    --h: 1;
+    --bleed: 16%;
+  }
+  /* kalkulator: visual besar satu bagian, bukan ikon kecil */
+  .b3d--calc {
+    --bleed: 0px;
+    width: 100%;
+    height: clamp(340px, 40vw, 580px);
+  }
+  .b3d--calc .b3d__shadow {
+    left: 34%;
+    right: 34%;
+    bottom: 3%;
+    height: 22px;
+  }
+  .b3d__flat {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    transition: opacity 0.3s ease;
+  }
+  .b3d__canvas {
+    position: absolute;
+    top: calc(-1 * var(--bleed));
+    left: calc(-1 * var(--bleed));
+    width: calc(100% + 2 * var(--bleed));
+    height: calc(100% + 2 * var(--bleed));
+    max-width: none;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  .b3d.is-3d .b3d__canvas {
+    opacity: 1;
+  }
+  .b3d__shadow {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: -13px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(18, 18, 18, 0.34), transparent);
+  }
+  /* selama 3D disiapkan, cadangan datar disembunyikan supaya tidak tampak berganti bentuk */
+  .js .b3d:not(.is-flat) .b3d__flat {
+    opacity: 0;
+  }
+  .js .b3d:not(.is-flat, .is-3d) .b3d__shadow {
+    opacity: 0;
+  }
+  @media (max-width: 900px) {
+    .b3d {
+      --w: 52px;
+    }
+    .b3d--key {
+      --w: 104px;
+    }
+    .b3d--calc {
+      width: 100%;
+      height: clamp(320px, 100vw, 420px);
+    }
+    .b3d__shadow {
+      bottom: -9px;
+      height: 7px;
+    }
+  }
+</style>

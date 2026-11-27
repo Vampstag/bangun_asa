@@ -2,22 +2,28 @@
 /**
  * Isi homepage. Dipakai oleh dua rute: src/pages/index.astro (Indonesia) dan src/pages/en/index.astro (Inggris).
  * Bahasa ditentukan dari URL (/en/...), teksnya dari src/i18n.
+ *
+ * Beranda fokus pada tiga hal: bikin orang PENASARAN, PERCAYA, lalu MENGHUBUNGI kami. Yang sifatnya rinci soal perusahaan
+ * (tentang kami, keunggulan, tim, sertifikat, visi dan misi) ada di halaman Tentang.
  */
 import Layout from '../layouts/Layout.astro';
 import Header from './Header.astro';
 import Footer from './Footer.astro';
+import SideNav from './SideNav.astro';
 import Cta from './Cta.astro';
 import QuoteForm from './QuoteForm.astro';
 import Hero from './home/Hero.astro';
+import LegalStrip from './home/LegalStrip.astro';
 import Trust from './home/Trust.astro';
-import Intro from './home/Intro.astro';
 import Audience from './home/Audience.astro';
-import Services from './home/Services.astro';
 import Work from './home/Work.astro';
-import Process from './home/Process.astro';
-import Team from './home/Team.astro';
+import CtaBand from './home/CtaBand.astro';
+import Services from './home/Services.astro';
+import CalcTeaser from './home/CalcTeaser.astro';
 import Quote from './home/Quote.astro';
+import Process from './home/Process.astro';
 import Faq from './home/Faq.astro';
+import Social from './home/Social.astro';
 ---
 
 <Layout>
@@ -26,19 +32,27 @@ import Faq from './home/Faq.astro';
     <Hero />
     <!-- "Tirai": hero tetap diam (sticky), section di bawahnya naik menutupinya. -->
     <div class="curtain" data-curtain>
+      <!-- Perjalanan calon klien:
+           PERCAYA DULU: legalitas tepat di bawah hero (perusahaan resmi atau bukan?)
+           PENASARAN: strip bukti + angka, untuk siapa, hasil kerja, ajakan, layanan, kalkulator biaya
+           PERCAYA:   testimoni, tujuh langkah kerja (sticky, hilangkan rasa takut), FAQ, video TikTok (bukti hidup)
+           KONTAK:    form dan WhatsApp -->
+      <LegalStrip />
       <Trust />
-      <Intro />
       <Audience />
-      <Services />
       <Work />
-      <Process />
-      <Team />
+      <CtaBand />
+      <Services />
+      <CalcTeaser />
       <Quote />
+      <Process />
       <Faq />
-      <Cta>
+      <Social />
+      <Cta houseKey>
         <QuoteForm />
       </Cta>
     </div>
   </main>
   <Footer />
+  <SideNav page="home" />
 </Layout>

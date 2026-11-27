@@ -3,17 +3,17 @@
     {
       "title_id": "Rumah Minimalis Modern",
       "title_en": "Modern Minimalist House",
-      "meta_id": "Rumah tinggal",
-      "meta_en": "Residential",
+      "meta_id": "Pembangunan baru · Tuban",
+      "meta_en": "New build · Tuban",
       "image": "/src/assets/uploads/proyek-1.webp",
       "alt_id": "Rumah minimalis modern satu lantai dengan panel abu-abu",
       "alt_en": "Single-storey modern minimalist house with grey panels"
     },
     {
-      "title_id": "Rumah Tinggal Satu Lantai",
-      "title_en": "Single-Storey House",
-      "meta_id": "Rumah tinggal",
-      "meta_en": "Residential",
+      "title_id": "Renovasi Rumah Tinggal",
+      "title_en": "Home Renovation",
+      "meta_id": "Renovasi · Tuban",
+      "meta_en": "Renovation · Tuban",
       "image": "/src/assets/uploads/proyek-2.webp",
       "alt_id": "Teras dan carport rumah minimalis berfasad putih",
       "alt_en": "Terrace and carport of a minimalist house with a white facade"
@@ -21,8 +21,8 @@
     {
       "title_id": "Rumah Dua Lantai",
       "title_en": "Two-Storey House",
-      "meta_id": "Rumah tinggal",
-      "meta_en": "Residential",
+      "meta_id": "Pembangunan baru · Blora",
+      "meta_en": "New build · Blora",
       "image": "/src/assets/uploads/proyek-3.webp",
       "alt_id": "Rumah dua lantai modern dengan aksen oranye",
       "alt_en": "Modern two-storey house with orange accents"
@@ -30,11 +30,20 @@
     {
       "title_id": "Rumah Tinggal Modern",
       "title_en": "Modern Family Home",
-      "meta_id": "Rumah tinggal",
-      "meta_en": "Residential",
+      "meta_id": "Pembangunan baru · Tuban",
+      "meta_en": "New build · Tuban",
       "image": "/src/assets/uploads/proyek-4.webp",
       "alt_id": "Rumah putih bergaya modern dengan aksen oranye dan taman depan",
       "alt_en": "Modern white house with orange accents and a front garden"
+    },
+    {
+      "title_id": "Rumah Dua Lantai Aksen Tosca",
+      "title_en": "Two-Storey House with Teal Accent",
+      "meta_id": "Pembangunan baru · Tuban",
+      "meta_en": "New build · Tuban",
+      "image": "/src/assets/uploads/proyek-5.webp",
+      "alt_id": "Rumah dua lantai berwarna putih dengan aksen tosca, balkon, dan taman depan",
+      "alt_en": "White two-storey house with teal accents, a balcony, and a front garden"
     }
   ]
 }

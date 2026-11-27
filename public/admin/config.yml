@@ -76,24 +76,93 @@ collections:
               - { label: Isi testimoni (Inggris), name: text_en, widget: text, required: false, hint: Boleh dikosongkan. Kalau kosong, versi Inggris menampilkan teks Indonesia dengan catatan "Original in Indonesian". }
               - { label: Foto, name: photo, widget: image, required: false, choose_url: false, hint: 'Boleh dikosongkan (akan memakai huruf awal nama). Pakai foto hanya jika orangnya mengizinkan.' }
 
+  - name: kalkulator
+    label: Kalkulator estimasi
+    description: Tarif yang dipakai kalkulator biaya di situs. Angka awal dari riset harga pasar, bukan tarif Bangun Asa. Cocokkan dengan RAB proyek sendiri, lalu centang "Tarif sudah dikonfirmasi" supaya kalkulator tampil di menu dan beranda.
+    files:
+      - name: tarif
+        label: Tarif kalkulator
+        file: src/data/content/calculator.json
+        fields:
+          - { label: Catatan, name: _info, widget: hidden, required: false }
+          - { label: Tarif sudah dikonfirmasi tim, name: confirmed, widget: boolean, default: false, hint: 'Selama TIDAK dicentang, kalkulator disembunyikan dari menu dan beranda situs. Setelah dicentang, halaman menyebut tarif ditetapkan tim Bangun Asa.' }
+          - { label: Bulan data harga, name: data_date, widget: string, pattern: ['^20[0-9]{2}-(0[1-9]|1[0-2])$', 'Format tahun-bulan, contoh 2026-11'], hint: 'Ganti setiap kali tarif diperbarui. Tampil di bawah hasil hitungan.' }
+          - { label: Rumah baru per m² (standar, di Tuban), name: rate_standard, widget: number, value_type: int, min: 500000, max: 50000000, step: 50000, hint: 'Rupiah per m², satu lantai, bahan dan upah.' }
+          - { label: Rumah baru per m² (menengah, di Tuban), name: rate_mid, widget: number, value_type: int, min: 500000, max: 50000000, step: 50000 }
+          - { label: Rumah baru per m² (premium, di Tuban), name: rate_premium, widget: number, value_type: int, min: 500000, max: 50000000, step: 50000 }
+          - { label: Faktor renovasi total, name: factor_full, widget: number, value_type: float, min: 0.2, max: 1.5, step: 0.05, hint: '0.9 = 90% dari biaya rumah baru.' }
+          - label: Lebar kisaran per jenis pekerjaan
+            name: ranges
+            widget: object
+            hint: '0.2 berarti 20% dari perkiraan tengah.'
+            fields:
+              - { label: Rumah baru, name: new, widget: object, fields: [ { label: Selisih bawah, name: low, widget: number, value_type: float, min: 0, max: 0.6, step: 0.01 }, { label: Selisih atas, name: high, widget: number, value_type: float, min: 0, max: 0.8, step: 0.01 } ] }
+              - { label: Renovasi sebagian, name: partial, widget: object, fields: [ { label: Selisih bawah, name: low, widget: number, value_type: float, min: 0, max: 0.6, step: 0.01 }, { label: Selisih atas, name: high, widget: number, value_type: float, min: 0, max: 0.8, step: 0.01 } ] }
+              - { label: Renovasi total, name: full, widget: object, fields: [ { label: Selisih bawah, name: low, widget: number, value_type: float, min: 0, max: 0.6, step: 0.01 }, { label: Selisih atas, name: high, widget: number, value_type: float, min: 0, max: 0.8, step: 0.01 } ] }
+          - { label: Koefisien jumlah lantai, name: floors, widget: object, fields: [ { label: 1 lantai, name: '1', widget: number, value_type: float }, { label: 2 lantai, name: '2', widget: number, value_type: float }, { label: 3 lantai, name: '3', widget: number, value_type: float } ] }
+          - { label: Tahun data IKK BPS, name: ikk_year, widget: number, value_type: int, min: 2024, max: 2100 }
+          - { label: IKK Tuban (pembanding), name: ikk_base, widget: number, value_type: float, min: 0, max: 200, step: 0.01, hint: Nilai IKK Kabupaten Tuban pada tahun data yang sama. }
+          - label: Daerah proyek (Indeks Kemahalan Konstruksi BPS)
+            name: regions
+            widget: list
+            label_singular: daerah
+            summary: '{{fields.name}} · {{fields.ikk}}'
+            hint: 'Salin dari publikasi BPS Indeks Kemahalan Konstruksi. Semua angka harus dari tahun yang sama.'
+            fields:
+              - { label: Kode (huruf kecil tanpa spasi), name: key, widget: string, pattern: ['^[a-z0-9-]{2,30}$', 'Huruf kecil, angka, atau tanda hubung'] }
+              - { label: Nama daerah, name: name, widget: string }
+              - { label: IKK, name: ikk, widget: number, value_type: float, min: 50, max: 400, step: 0.01 }
+          - label: Porsi komponen pekerjaan rumah (dipakai renovasi sebagian dan gambaran biaya)
+            name: components
+            widget: object
+            hint: 'Nilai tengah pedoman Permen PU 45/2007 untuk rumah. Jumlahnya sekitar 100.'
+            fields:
+              - { label: Pondasi, name: foundation, widget: number, value_type: float, min: 0, max: 100 }
+              - { label: Struktur, name: structure, widget: number, value_type: float, min: 0, max: 100 }
+              - { label: Lantai, name: floor, widget: number, value_type: float, min: 0, max: 100 }
+              - { label: Dinding, name: wall, widget: number, value_type: float, min: 0, max: 100 }
+              - { label: Plafon, name: ceiling, widget: number, value_type: float, min: 0, max: 100 }
+              - { label: Atap, name: roof, widget: number, value_type: float, min: 0, max: 100 }
+              - { label: Listrik dan air, name: utility, widget: number, value_type: float, min: 0, max: 100 }
+              - { label: Finishing, name: finishing, widget: number, value_type: float, min: 0, max: 100 }
+          - label: Durasi rumah baru (minggu)
+            name: duration
+            widget: object
+            hint: 'Minggu = (dasar + tambahan per m² x luas) x faktor lantai.'
+            fields:
+              - { label: Dasar (minggu), name: base, widget: number, value_type: float, min: 0, max: 100 }
+              - { label: Tambahan minggu per m², name: perM2, widget: number, value_type: float, min: 0, max: 2, step: 0.01 }
+              - { label: Faktor lantai, name: floors, widget: object, fields: [ { label: 1 lantai, name: '1', widget: number, value_type: float }, { label: 2 lantai, name: '2', widget: number, value_type: float }, { label: 3 lantai, name: '3', widget: number, value_type: float } ] }
+              - { label: Selisih bawah, name: low, widget: number, value_type: float, min: 0, max: 0.5, step: 0.01 }
+              - { label: Selisih atas, name: high, widget: number, value_type: float, min: 0, max: 0.8, step: 0.01 }
+
   - name: pengaturan
     label: Pengaturan situs
-    description: Kontak dan sosial media. Berubah di seluruh situs sekaligus (header, menu, footer, tombol WhatsApp, form).
+    description: Kontak, sistem giliran WhatsApp, sosial media, dan pelacakan. Berubah di seluruh situs sekaligus.
     files:
       - name: kontak
         label: Kontak dan sosial media
         file: src/data/content/settings.json
         fields:
           - { label: Alamat kantor, name: address, widget: text, hint: Tampil di footer dan data Google. }
+          - label: Cara kerja tombol WhatsApp
+            name: wa_mode
+            widget: select
+            default: giliran
+            options:
+              - { label: 'Giliran otomatis: sekali ketuk, pengunjung dibagi rata ke CS aktif', value: giliran }
+              - { label: Pengunjung memilih CS sendiri, value: pilih }
+            hint: 'Giliran: tiap pengunjung baru mendapat satu CS secara acak merata dan tetap ke CS yang sama selama 30 hari.'
           - label: Nomor customer service
             name: phones
             widget: list
             label_singular: nomor
             min: 1
             summary: '{{fields.name}} · {{fields.display}}'
-            hint: 'NOMOR PERTAMA dipakai sebagai WhatsApp utama (form penawaran dan tautan umum). Seret untuk menukar urutan.'
+            hint: 'Nomor AKTIF mendapat giliran. Pada mode pilih sendiri, nomor aktif teratas dipakai sebagai WhatsApp utama.'
             fields:
               - { label: Nama, name: name, widget: string, hint: 'Contoh: CS Nana' }
+              - { label: Aktif menerima chat, name: active, widget: boolean, default: true, required: false, hint: 'Matikan saat CS cuti. Nomor nonaktif tidak tampil di situs dan tidak mendapat giliran.' }
               - label: Nomor
                 name: display
                 widget: string
@@ -101,3 +170,10 @@ collections:
                 pattern: ['^[0-9+() -]{8,22}$', 'Tulis angkanya saja, contoh 0851 3851 6234']
           - { label: Instagram (tautan lengkap), name: instagram, widget: string, required: false, hint: 'Contoh: https://www.instagram.com/bangun_asa' }
           - { label: TikTok (tautan lengkap), name: tiktok, widget: string, required: false, hint: 'Contoh: https://www.tiktok.com/@bangun_asa' }
+      - name: pelacakan
+        label: Pelacakan iklan dan statistik
+        file: src/data/content/tracking.json
+        fields:
+          - { label: ID Google Analytics 4, name: ga4_id, widget: string, required: false, pattern: ['^(G-[A-Z0-9]{6,14})?$', 'Format: G-XXXXXXXXXX'], hint: 'Dari analytics.google.com > Admin > Aliran data. Boleh dikosongkan.' }
+          - { label: ID TikTok Pixel, name: tiktok_pixel_id, widget: string, required: false, pattern: ['^([A-Z0-9]{15,30})?$', 'Salin kode Pixel dari TikTok Ads Manager'], hint: 'Dari TikTok Ads Manager > Events > Web Events. Boleh dikosongkan.' }
+          - { label: ID Meta Pixel (Facebook dan Instagram), name: meta_pixel_id, widget: string, required: false, pattern: ['^([0-9]{8,20})?$', 'Hanya angka'], hint: 'Dari Meta Events Manager. Boleh dikosongkan.' }

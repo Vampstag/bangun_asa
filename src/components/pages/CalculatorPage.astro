@@ -1,0 +1,73 @@
+---
+/**
+ * Halaman Kalkulator (/calculator dan /en/calculator): alat hitung estimasi biaya dan durasi, penjelasan apa yang
+ * sudah dan belum termasuk, lalu ajakan dan form. Tarif dari src/data/content/calculator.json (dashboard).
+ */
+import Layout from '../../layouts/Layout.astro';
+import Header from '../Header.astro';
+import Footer from '../Footer.astro';
+import SideNav from '../SideNav.astro';
+import Cta from '../Cta.astro';
+import QuoteForm from '../QuoteForm.astro';
+import SectionHead from '../SectionHead.astro';
+import PageHeroH from './PageHeroH.astro';
+import CtaPhoto from './CtaPhoto.astro';
+import Calculator from '../tools/Calculator.astro';
+import CalcBasis from '../tools/CalcBasis.astro';
+import { langOf } from '../../data/site';
+import { t } from '../../i18n';
+import { CALC } from '../../data/calculator';
+import heroImage from '../../assets/real/proyek-1.webp';
+import bandImage from '../../assets/real/proyek-2.webp';
+
+const lang = langOf(Astro.url.pathname);
+const d = t(lang);
+const C = d.pages.calculator;
+const S = C.scope;
+---
+
+<Layout title={C.meta.title} description={C.meta.description} noindex={!CALC.confirmed}>
+  <Header contactHere />
+  <main id="top">
+    <PageHeroH title={C.title} lead={C.lead} image={heroImage} action={{ label: d.navCta.label, href: '#kontak' }} />
+
+    <Calculator />
+
+    <CalcBasis />
+
+    <section class="sec tone" id="catatan">
+      <div class="wrap">
+        <SectionHead label={S.label} title={S.title} />
+        <div class="cnote-grid">
+          <div class="cnote" data-reveal>
+            <h3>{S.included.title}</h3>
+            <ul class="cnote__list cnote__list--yes">
+              {S.included.items.map((x) => (
+                <li>{x}</li>
+              ))}
+            </ul>
+          </div>
+          <div class="cnote" data-reveal>
+            <h3>{S.excluded.title}</h3>
+            <ul class="cnote__list cnote__list--no">
+              {S.excluded.items.map((x) => (
+                <li>{x}</li>
+              ))}
+            </ul>
+          </div>
+          <div class="cnote cnote--why" data-reveal>
+            <h3>{S.why.title}</h3>
+            <p>{S.why.text}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <CtaPhoto image={bandImage} />
+    <Cta>
+      <QuoteForm />
+    </Cta>
+  </main>
+  <Footer />
+  <SideNav page="calculator" />
+</Layout>

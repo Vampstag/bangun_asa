@@ -1,0 +1,25 @@
+---
+/** Tombol kotak: ikon panah ganda di kotak merah + label huruf besar (pola tombol di template Heritage). */
+interface Props {
+  href: string;
+  label: string;
+  variant?: 'primary' | 'light' | 'ghost';
+  class?: string;
+  [attr: string]: unknown;
+}
+
+const { href, label, variant = 'primary', class: extra, ...rest } = Astro.props;
+---
+
+<a
+  class:list={['hbtn', { 'hbtn--light': variant === 'light', 'hbtn--ghost': variant === 'ghost' }, extra]}
+  href={href}
+  {...rest}
+>
+  <span class="hbtn__ico" aria-hidden="true">
+    <svg viewBox="0 0 24 24">
+      <path d="m6 6 6 6-6 6M12 6l6 6-6 6"></path>
+    </svg>
+  </span>
+  <span class="hbtn__txt">{label}</span>
+</a>

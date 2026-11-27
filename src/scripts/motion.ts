@@ -103,6 +103,8 @@ function initMotion(): () => void {
     document.body.classList.toggle('menu-open', open);
     burger.setAttribute('aria-expanded', String(open));
     burger.setAttribute('aria-label', (open ? burger.dataset.labelClose : burger.dataset.labelOpen) ?? '');
+    const txt = $('[data-burger-txt]', burger);
+    if (txt) txt.textContent = (open ? txt.dataset.close : txt.dataset.open) ?? '';
     if (open) menu.removeAttribute('inert');
     else menu.setAttribute('inert', '');
     if (open) lenis?.stop();
@@ -145,7 +147,8 @@ function initMotion(): () => void {
       e.preventDefault();
       const wasOpen = document.body.classList.contains('menu-open');
       if (wasOpen) setMenu(false);
-      const y = id === '#top' ? 0 : target.getBoundingClientRect().top + scrollY;
+      const margin = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+      const y = id === '#top' ? 0 : target.getBoundingClientRect().top + scrollY - margin;
       setTimeout(
         () => {
           if (lenis) {
@@ -186,6 +189,11 @@ function initMotion(): () => void {
   };
   ScrollTrigger.create({ start: 0, end: 'max', onUpdate: syncHeader });
   addEventListener('resize', syncHeader, listen);
+  // posisi scroll dipulihkan browser setelah halaman dimuat ulang: warna header dihitung lagi mengikuti posisi sebenarnya
+  addEventListener('scroll', syncHeader, { ...listen, passive: true });
+  addEventListener('load', syncHeader, listen);
+  const resync = [60, 400, 1200].map((ms) => window.setTimeout(syncHeader, ms));
+  cleanups.push(() => resync.forEach((t) => window.clearTimeout(t)));
   syncHeader();
 
   if (reduce) {
@@ -249,10 +257,33 @@ function initMotion(): () => void {
   const pad = (n: number) => String(n).padStart(2, '0');
   const goTo = (y: number) => (lenis ? lenis.scrollTo(y, { duration: 1.2 }) : scrollTo({ top: y, behavior: 'smooth' }));
 
+  /* ---------- kartu layanan bertumpuk: kartu yang tertutup mengecil dan meredup ---------- */
+  const stack = $('[data-stack]');
+  if (stack) {
+    mm.add(`${DESKTOP} and (prefers-reduced-motion: no-preference)`, () => {
+      const cards = $$('.sc', stack);
+      cards.slice(0, -1).forEach((card, i) => {
+        const next = cards[i + 1];
+        gsap.to(card, {
+          '--depth': 1,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: next,
+            start: 'top 85%',
+            end: () => `top ${118 + i * 14}px`,
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
+        });
+      });
+      return () => cards.forEach((c) => c.style.removeProperty('--depth'));
+    });
+  }
+
   /* ---------- services: tabs driven by scroll, clickable ---------- */
   const tabsRoot = $('[data-tabs]');
   if (tabsRoot) {
-    mm.add(`${DESKTOP} and (prefers-reduced-motion: no-preference)`, () => {
+    mm.add(`${DESKTOP} and (min-height: 700px) and (prefers-reduced-motion: no-preference)`, () => {
       const tabs = $$('[data-tab]', tabsRoot);
       const imgs = $$('[data-tab-img]', tabsRoot);
       const n = tabs.length;
@@ -300,7 +331,7 @@ function initMotion(): () => void {
     });
 
     // Tablet and mobile: a short accordion instead of a tall list, so there is far less to scroll.
-    mm.add('(max-width: 900px)', () => mountAccordion(tabsRoot));
+    mm.add('(max-width: 900px), (min-width: 901px) and (max-height: 699px)', () => mountAccordion(tabsRoot));
   }
 
   /* ---------- work: horizontal slider that sticks while you scroll ---------- */
@@ -352,8 +383,9 @@ function initMotion(): () => void {
 
   /* ---------- process: sticky heading, steps light up as they pass ---------- */
   const proc = $('[data-proc]');
-  if (proc) {
-    mm.add(DESKTOP, () => {
+  const lightSteps = (query: string, line: string) => {
+    if (!proc) return;
+    mm.add(query, () => {
       const steps = $$('[data-step]', proc);
       const cur = $('[data-proc-cur]', proc);
       const set = (i: number) => {
@@ -365,8 +397,8 @@ function initMotion(): () => void {
       steps.forEach((s, i) =>
         ScrollTrigger.create({
           trigger: s,
-          start: 'top 58%',
-          end: 'bottom 58%',
+          start: `top ${line}`,
+          end: `bottom ${line}`,
           onToggle: (self) => {
             if (self.isActive) set(i);
           },
@@ -377,7 +409,9 @@ function initMotion(): () => void {
         set(0);
       };
     });
-  }
+  };
+  lightSteps(DESKTOP, '58%');
+  lightSteps('(max-width: 900px)', '76%');
 
   /* ---------- testimonials: sticky scene ----------
      A 100svh stage sticks to the screen (CSS) while the card column rises through the heading; the section's
@@ -387,7 +421,7 @@ function initMotion(): () => void {
   const qCol = $('[data-quote-col]');
   const qTitle = $('[data-quote-title]');
   if (qScene && qCol && qTitle) {
-    const SCENE = '(prefers-reduced-motion: no-preference) and (min-height: 520px)';
+    const SCENE = '(min-width: 901px) and (prefers-reduced-motion: no-preference) and (min-height: 520px)';
     const SPEED = 0.9; // scroll distance per distance travelled by the column (1 = card follows the scroll 1:1)
     mm.add(SCENE, () => {
       qScene.setAttribute('data-scene', '');
@@ -518,14 +552,16 @@ function initMotion(): () => void {
     return r.bottom > 0 && r.top < innerHeight;
   };
   ScrollTrigger.batch('[data-reveal]', {
-    start: 'top 90%',
+    start: 'top 97%',
     once: true,
     onEnter: (els) => {
       // After a long jump, skipped elements show instantly; only what is on screen animates.
       const skipped = els.filter((el) => !onScreen(el));
       const visible = els.filter(onScreen);
-      if (skipped.length) gsap.set(skipped, { opacity: 1, y: 0 });
-      if (visible.length) gsap.to(visible, { opacity: 1, y: 0, duration: 1.1, ease: 'power3.out', stagger: 0.09 });
+      // x ikut dikembalikan ke 0 untuk elemen yang masuk dari samping (data-reveal="left" | "right").
+      if (skipped.length) gsap.set(skipped, { opacity: 1, x: 0, y: 0 });
+      if (visible.length)
+        gsap.to(visible, { opacity: 1, x: 0, y: 0, duration: 0.9, ease: 'power3.out', stagger: 0.07 });
     },
   });
 
@@ -578,8 +614,13 @@ function initMotion(): () => void {
   }
 
   /* ---------- count up ---------- */
+  const phone = matchMedia('(max-width: 900px)').matches;
   $$('[data-count]').forEach((el) => {
     const end = Number(el.dataset.count);
+    if (phone) {
+      el.textContent = fmt(end);
+      return;
+    }
     const o = { v: 0 };
     el.textContent = '0';
     ScrollTrigger.create({

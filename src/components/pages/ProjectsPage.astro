@@ -1,0 +1,46 @@
+---
+/**
+ * Halaman Proyek (/projects dan /en/projects): hero bergaya Heritage, penjelajah proyek (pencarian, filter, tampilan kisi atau daftar),
+ * lalu ajakan dan form. Daftar proyek dari CMS (src/data/content/projects.json).
+ */
+import Layout from '../../layouts/Layout.astro';
+import Header from '../Header.astro';
+import Footer from '../Footer.astro';
+import SideNav from '../SideNav.astro';
+import Cta from '../Cta.astro';
+import QuoteForm from '../QuoteForm.astro';
+import Lightbox from '../Lightbox.astro';
+import PageHeroH from './PageHeroH.astro';
+import CtaPhoto from './CtaPhoto.astro';
+import ProjectExplorer from './ProjectExplorer.astro';
+import { langOf } from '../../data/site';
+import { getPages } from '../../data/pages';
+import { t } from '../../i18n';
+import heroImage from '../../assets/uploads/proyek-5.webp';
+import bandImage from '../../assets/real/proyek-3.webp';
+
+const lang = langOf(Astro.url.pathname);
+const { projects: P } = getPages(lang);
+---
+
+<Layout title={P.meta.title} description={P.meta.description}>
+  <Header contactHere />
+  <main id="top">
+    <PageHeroH
+      title={P.title}
+      lead={P.lead}
+      image={heroImage}
+      action={{ label: t(lang).navCta.label, href: '#kontak' }}
+    />
+
+    <ProjectExplorer />
+
+    <CtaPhoto image={bandImage} />
+    <Cta>
+      <QuoteForm />
+    </Cta>
+  </main>
+  <Footer />
+  <SideNav page="projects" />
+  <Lightbox />
+</Layout>

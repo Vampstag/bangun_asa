@@ -1,0 +1,50 @@
+---
+/**
+ * Legalitas di bagian paling atas beranda (tepat di bawah hero). Orang yang akan mempercayakan uang puluhan sampai ratusan juta
+ * ingin tahu dulu: "ini perusahaan resmi atau bukan?". Data dari bagian legalitas (src/i18n, trust.legal); dokumen dan sertifikat
+ * lengkapnya ada di halaman Tentang.
+ */
+import { href, langOf } from '../../data/site';
+import { t } from '../../i18n';
+import { getHome } from '../../data/home';
+import Icon from '../pages/Icon.astro';
+import Badge3D from './Badge3D.astro';
+import type { IconName } from '../../data/icons';
+
+const lang = langOf(Astro.url.pathname);
+const L = t(lang).home.legalStrip;
+const { TRUST } = getHome(lang);
+const here = Astro.url.pathname;
+const icons: IconName[] = ['office', 'contract', 'award'];
+---
+
+<section class="lt" id="legalitas" aria-label={L.label}>
+  <div class="wrap">
+    <div class="lt__card" data-reveal>
+      <div class="lt__head">
+        <Badge3D kind="shield" class="lt__badge" />
+        <div class="lt__txt">
+          <p class="lt__k">{L.label}</p>
+          <h2 class="lt__t">{L.title}</h2>
+        </div>
+        <a class="arrow-link lt__more" href={href('/about#legalitas', here)}>
+          {L.more} <i aria-hidden="true"></i>
+        </a>
+      </div>
+
+      <dl class="lt__list">
+        {TRUST.legal.map((l, i) => (
+          <div>
+            <dt>
+              <span class="lt__ico">
+                <Icon name={icons[i] ?? 'quality'} />
+              </span>
+              {l.name}
+            </dt>
+            <dd>{l.text}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </div>
+</section>

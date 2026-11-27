@@ -36,8 +36,51 @@ Aturan penting:
 
 1. Menu **Pengaturan situs** → **Kontak dan sosial media**.
 2. Ubah, lalu **Save**. Berubah di seluruh situs sekaligus: header, menu, footer, tombol WhatsApp, dan form.
-3. **Nomor CS pertama** di daftar menjadi **WhatsApp utama**. Seret untuk menukar urutan.
-4. Tulis nomor seperti biasa (mis. `0851 3851 6234`).
+3. Tulis nomor seperti biasa (mis. `0851 3851 6234`).
+
+## Sistem giliran WhatsApp
+
+Di halaman yang sama (**Kontak dan sosial media**):
+
+- **Cara kerja tombol WhatsApp**
+  - **Giliran otomatis** (bawaan): pengunjung cukup sekali ketuk. Tiap pengunjung baru mendapat satu CS secara acak merata, dan
+    tetap ke CS yang sama selama 30 hari. Tombol Telepon, form penawaran, dan kalkulator mengikuti CS yang sama.
+  - **Pengunjung memilih sendiri**: tombol membuka daftar CS.
+- **Aktif menerima chat** (per nomor): matikan saat CS cuti, nyalakan lagi saat masuk. Nomor nonaktif tidak tampil di situs.
+- Daftar CS di menu dan footer selalu mengarah ke orang yang namanya diketuk.
+
+Catatan: karena situs ini tanpa server, pembagiannya **rata secara rata-rata**, bukan bergantian ketat satu-satu. Dengan sedikit
+pengunjung, jumlah chat tiap CS bisa berbeda; makin banyak pengunjung, makin seimbang. Perubahan di dashboard baru tayang setelah
+situs selesai dibangun ulang (beberapa menit).
+
+## Pelacakan iklan dan statistik
+
+Menu **Pengaturan situs** → **Pelacakan iklan dan statistik**. Isi ID yang dipakai, yang lain boleh kosong: **Google Analytics 4**,
+**TikTok Pixel**, **Meta Pixel**. Pelacakan hanya berjalan di situs live.
+
+| Kejadian | Kapan tercatat | TikTok / Meta |
+| --- | --- | --- |
+| `whatsapp_click` | tombol atau tautan WhatsApp diketuk | Contact |
+| `phone_click` | tombol Telepon atau nomor diketuk | Contact |
+| `form_submit` | form penawaran dikirim | SubmitForm / Lead |
+| `calculator_use` | kalkulator mulai dipakai | hanya GA4 |
+| `social_click`, `directions_click` | Instagram, TikTok, atau peta diketuk | hanya GA4 |
+
+Tiap kejadian membawa `placement` (posisi tombol, mis. `hero`, `bilah_bawah_hp`, `footer`) dan, untuk WhatsApp, nama CS. Di GA4,
+daftarkan `placement` dan `cs` sebagai *custom dimension* supaya bisa dilihat di laporan; `generate_lead` bisa ditandai sebagai
+konversi. Nama, lokasi, dan isi pesan pengunjung **tidak** dikirim. Karena pelacakan ini memakai cookie pihak ketiga, tambahkan
+halaman kebijakan privasi sebelum menjalankan iklan.
+
+## Mengatur tarif kalkulator estimasi
+
+Menu **Kalkulator estimasi** berisi harga rumah baru per m² di Tuban (standar, menengah, premium), faktor renovasi total, lebar kisaran,
+koefisien jumlah lantai, daftar daerah beserta indeks biaya BPS, porsi komponen untuk renovasi sebagian, dan rumus durasi.
+**Angka awalnya hasil riset harga pasar, bukan tarif Bangun Asa.** Cocokkan dulu dengan proyek yang sudah selesai (caranya di
+[DASAR-KALKULATOR.md](DASAR-KALKULATOR.md)), lalu centang **Tarif sudah dikonfirmasi tim** dan simpan. Selama belum dicentang,
+kalkulator tidak tampil di menu dan beranda situs.
+
+- **Tiap 3 bulan:** cek harga per m², lalu ganti **Bulan data harga**.
+- **Tiap Oktober:** perbarui indeks daerah dari publikasi BPS terbaru. Semua daerah, termasuk Tuban, harus dari tahun yang sama.
 
 ## Yang tidak bisa diubah dari dashboard
 

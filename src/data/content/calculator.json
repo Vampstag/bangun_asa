@@ -1,0 +1,52 @@
+{
+  "_info": "Tarif kalkulator estimasi biaya. Diedit lewat dashboard (Kalkulator estimasi). Angka awal berasal dari RISET HARGA PASAR dan data resmi (lihat docs/DASAR-KALKULATOR.md), BUKAN tarif Bangun Asa. Tim Bangun Asa wajib mencocokkannya dengan RAB proyek sendiri, lalu mencentang 'confirmed'. Selama confirmed = false, kalkulator tidak muncul di menu produksi dan halamannya diberi tanda.",
+  "confirmed": false,
+  "data_date": "2026-11",
+  "rate_standard": 3900000,
+  "rate_mid": 4900000,
+  "rate_premium": 6800000,
+  "factor_full": 0.9,
+  "ranges": {
+    "new": { "low": 0.2, "high": 0.3 },
+    "partial": { "low": 0.2, "high": 0.4 },
+    "full": { "low": 0.3, "high": 0.35 }
+  },
+  "floors": { "1": 1, "2": 1.09, "3": 1.12 },
+  "ikk_year": 2026,
+  "ikk_base": 100.05,
+  "regions": [
+    { "key": "tuban", "name": "Tuban", "ikk": 100.05 },
+    { "key": "bojonegoro", "name": "Bojonegoro", "ikk": 101.5 },
+    { "key": "lamongan", "name": "Lamongan", "ikk": 102.36 },
+    { "key": "gresik", "name": "Gresik", "ikk": 111.23 },
+    { "key": "surabaya", "name": "Surabaya", "ikk": 106.45 },
+    { "key": "sidoarjo", "name": "Sidoarjo", "ikk": 105.51 },
+    { "key": "mojokerto", "name": "Mojokerto", "ikk": 103.93 },
+    { "key": "jombang", "name": "Jombang", "ikk": 103.34 },
+    { "key": "malang", "name": "Kota Malang", "ikk": 104.13 },
+    { "key": "kediri", "name": "Kediri", "ikk": 95.06 },
+    { "key": "nganjuk", "name": "Nganjuk", "ikk": 96.47 },
+    { "key": "ngawi", "name": "Ngawi", "ikk": 92.46 },
+    { "key": "rembang", "name": "Rembang", "ikk": 102.95 },
+    { "key": "blora", "name": "Blora", "ikk": 103.33 },
+    { "key": "pati", "name": "Pati", "ikk": 104.09 },
+    { "key": "semarang", "name": "Kota Semarang", "ikk": 108.26 }
+  ],
+  "components": {
+    "foundation": 5,
+    "structure": 22.5,
+    "floor": 12.5,
+    "wall": 12.5,
+    "ceiling": 9,
+    "roof": 12.5,
+    "utility": 9,
+    "finishing": 17.5
+  },
+  "duration": {
+    "base": 8,
+    "perM2": 0.08,
+    "floors": { "1": 1, "2": 1.4, "3": 1.8 },
+    "low": 0.15,
+    "high": 0.2
+  }
+}

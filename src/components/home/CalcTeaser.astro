@@ -1,0 +1,41 @@
+---
+/**
+ * Ajakan kalkulator di beranda: judul, penjelasan, tombol, dan kalkulator 3D yang "mengetik" luas dan jumlah lantai lalu
+ * berhenti di "Rp ?" (tanpa angka biaya). Mengetuk kalkulatornya juga membuka halaman kalkulator.
+ * Hanya tampil bila kalkulator aktif (tarif sudah dikonfirmasi, atau saat pengembangan).
+ */
+import { href, langOf } from '../../data/site';
+import { t } from '../../i18n';
+import { CALC_ENABLED } from '../../data/calculator';
+import Lines from '../Lines.astro';
+import HBtn from '../pages/HBtn.astro';
+import Badge3D from './Badge3D.astro';
+
+const T = t(langOf(Astro.url.pathname)).home.calcTeaser;
+const here = Astro.url.pathname;
+---
+
+{CALC_ENABLED && (
+  <section class="sec ct" id="hitung" aria-label={T.label}>
+    <div class="wrap ct__grid">
+      <div class="ct__txt">
+        <p class="label" data-reveal>
+          {T.label}
+        </p>
+        <h2 class="h2" data-reveal>
+          <Lines text={T.title} />
+        </h2>
+        <p class="ct__lead" data-reveal>
+          {T.text}
+        </p>
+        <div class="ct__act" data-reveal>
+          <HBtn href={href('/calculator', here)} label={T.cta} />
+        </div>
+      </div>
+      {/* pintasan untuk sentuhan dan klik; pembaca layar dan papan ketik memakai tombol di sebelahnya */}
+      <a class="ct__visual" href={href('/calculator', here)} tabindex="-1" aria-hidden="true">
+        <Badge3D kind="calc" screen={T.screen} />
+      </a>
+    </div>
+  </section>
+)}

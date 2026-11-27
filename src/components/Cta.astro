@@ -2,16 +2,19 @@
 import { SITE, whatsappUrl, langOf } from '../data/site';
 import { t } from '../i18n';
 import Lines from './Lines.astro';
+import Badge3D from './home/Badge3D.astro';
 
 interface Props {
   label?: string;
   /** Pakai "|" untuk baris baru. */
   title?: string;
+  /** true: kunci rumah 3D di atas judul (dipakai di beranda). */
+  houseKey?: boolean;
 }
 
 const lang = langOf(Astro.url.pathname);
 const d = t(lang);
-const { label = d.cta.label, title = d.cta.title } = Astro.props;
+const { label = d.cta.label, title = d.cta.title, houseKey = false } = Astro.props;
 // Jika ada isi di dalam <Cta>…</Cta> (mis. form), ia tampil di kolom kanan.
 const hasSlot = Astro.slots.has('default');
 const main = SITE.contact.phones[0];
@@ -20,6 +23,7 @@ const main = SITE.contact.phones[0];
 <section class:list={['cta', { 'cta--form': hasSlot }]} id="kontak" data-theme="dark">
   <div class:list={['wrap', { cta__grid: hasSlot }]}>
     <div class="cta__main">
+      {houseKey && <Badge3D kind="key" class="cta__key" />}
       <p class="label" data-reveal>
         {label}
       </p>
@@ -27,7 +31,7 @@ const main = SITE.contact.phones[0];
         <Lines text={title} />
       </h2>
       <a class="cta__mail" href={whatsappUrl(lang)} target="_blank" rel="noopener" data-reveal>
-        {d.cta.whatsapp} {main.display} <i aria-hidden="true"></i>
+        {d.cta.whatsapp} {SITE.contact.waMode === 'pilih' && main.display} <i aria-hidden="true"></i>
       </a>
       <p class="cta__note" data-reveal>
         {d.cta.note}
